@@ -22,8 +22,31 @@ interface IconSource {
   fromLibrary: boolean;
 }
 
+export type IconAnimation =
+  | 'beat'
+  | 'fade'
+  | 'beat-fade'
+  | 'bounce'
+  | 'flip'
+  | 'flip-360'
+  | 'shake'
+  | 'spin'
+  | 'spin-pulse'
+  | 'spin-reverse'
+  | 'spin-snap'
+  | 'spin-snap-4'
+  | 'spin-snap-8'
+  | 'buzz'
+  | 'wag'
+  | 'float'
+  | 'swing'
+  | 'jello';
+
+export type IconCanvas = 'fixed' | 'auto' | 'square' | 'roomy';
+
 /**
- * @summary Icons are symbols that can be used to represent various options within an application.
+ * @summary Icons are scalable vector symbols that represent actions, content, or status throughout your application.
+ *  They support Font Awesome and custom icon libraries with animation presets.
  * @documentation https://webawesome.com/docs/components/icon
  * @status stable
  * @since 2.0
@@ -34,6 +57,42 @@ interface IconSource {
  * @csspart svg - The internal SVG element.
  * @csspart use - The `<use>` element generated when using `spriteSheet: true`
  *
+ * @cssproperty [--animation-delay=0] Sets when the animation will start.
+ * @cssproperty [--animation-direction=normal] Defines whether or not the animation should play in reverse on alternate cycles.
+ * @cssproperty [--animation-duration=1s] Defines the length of time that an animation takes to complete one cycle.
+ * @cssproperty [--animation-iteration-count=infinite] Defines the number of times an animation cycle is played.
+ * @cssproperty [--animation-timing] Describes how the animation will progress over one cycle of its duration.
+ * @cssproperty [--beat-fade-opacity] Set lowest opacity value an icon with `beat-fade` animation will fade to and from.
+ * @cssproperty [--beat-fade-scale] Set max value that an icon with `beat-fade` animation will scale.
+ * @cssproperty [--beat-scale] Set the scale multiplier for an icon with `beat` animation. This multiplies the animation's 1.25× base pulse, so the default `1.25` peaks at ~1.56× and `2` roughly doubles the pulse.
+ * @cssproperty [--bounce-height] Set the max height an icon with `bounce` animation will jump to when bouncing.
+ * @cssproperty [--bounce-jump-scale-x] Set the icon’s horizontal distortion (“squish”) at the top of the jump.
+ * @cssproperty [--bounce-jump-scale-y] Set the icon’s vertical distortion (“squish”) at the top of the jump.
+ * @cssproperty [--bounce-land-scale-x] Set the icon’s horizontal distortion (“squish”) when landing after the jump.
+ * @cssproperty [--bounce-land-scale-y] Set the icon’s vertical distortion (“squish”) when landing after the jump.
+ * @cssproperty [--bounce-rebound] Set the amount of rebound an icon with `bounce` animation has when landing after the jump.
+ * @cssproperty [--bounce-start-scale-x] Set the icon’s horizontal distortion (“squish”) when starting to bounce.
+ * @cssproperty [--bounce-start-scale-y] Set the icon’s vertical distortion (“squish”) when starting to bounce.
+ * @cssproperty [--fade-opacity] Set lowest opacity value an icon with `fade` animation will fade to and from.
+ * @cssproperty [--flip-angle] Set rotation angle of flip for an icon with `flip` or `flip-360` animation. A positive angle denotes a clockwise rotation, a negative angle a counter-clockwise one.
+ * @cssproperty [--flip-x] Set x-coordinate of the vector denoting the axis of rotation (between 0 and 1) for an icon with `flip` or `flip-360` animation.
+ * @cssproperty [--flip-y] Set y-coordinate of the vector denoting the axis of rotation (between 0 and 1) for an icon with `flip` or `flip-360` animation.
+ * @cssproperty [--flip-z] Set z-coordinate of the vector denoting the axis of rotation (between 0 and 1) for an icon with `flip` or `flip-360` animation.
+ * @cssproperty [--flip-anticipation-scale] Set the scale of the wind-up before an icon with `flip` or `flip-360` animation rotates.
+ * @cssproperty [--flip-overshoot] Set how far past the final angle an icon with `flip` or `flip-360` animation rotates before settling.
+ * @cssproperty [--bounce-anticipation] Set the downward squash distance before an icon with `bounce` animation jumps.
+ * @cssproperty [--buzz-distance] Set the horizontal travel of an icon with `buzz` animation.
+ * @cssproperty [--wag-angle] Set the peak rotation of an icon with `wag` animation.
+ * @cssproperty [--swing-angle] Set the peak rotation of an icon with `swing` animation.
+ * @cssproperty [--jello-scale-x] Set the horizontal stretch of an icon with `jello` animation.
+ * @cssproperty [--jello-scale-y] Set the vertical stretch of an icon with `jello` animation.
+ * @cssproperty [--float-height] Set the rise height of an icon with `float` animation.
+ * @cssproperty [--float-drift] Set the horizontal drift of an icon with `float` animation.
+ * @cssproperty [--float-tilt] Set the rotation of an icon with `float` animation.
+ * @cssproperty [--float-squash-x] Set the horizontal squash of an icon with `float` animation at rest.
+ * @cssproperty [--float-squash-y] Set the vertical squash of an icon with `float` animation at rest.
+ * @cssproperty [--float-stretch-x] Set the horizontal stretch of an icon with `float` animation at its peak.
+ * @cssproperty [--float-stretch-y] Set the vertical stretch of an icon with `float` animation at its peak.
  * @cssproperty [--primary-color=currentColor] - Sets a duotone icon's primary color.
  * @cssproperty [--primary-opacity=1] - Sets a duotone icon's primary opacity.
  * @cssproperty [--secondary-color=currentColor] - Sets a duotone icon's secondary color.
@@ -63,7 +122,18 @@ export default class WaIcon extends WebAwesomeElement {
    */
   @property({ reflect: true }) variant: string;
 
-  /** Sets the width of the icon to match the cropped SVG viewBox. This operates like the Font `fa-width-auto` class. */
+  /**
+   * Sets the icon canvas — the box the icon is centered within. Unset renders as `fixed` (1.25em × 1em); `auto` hugs the
+   * icon's width; `square` is 1.25em × 1.25em; `roomy` is 1.5em × 1.5em. Mirrors Font Awesome's `fa-fixed-width`,
+   * `fa-width-auto`, `fa-canvas-square`, and `fa-canvas-roomy`. Scales with `font-size`.
+   */
+  @property({ reflect: true }) canvas?: IconCanvas;
+
+  /**
+   * Sets the width of the icon to match the cropped SVG viewBox. This operates like the Font `fa-width-auto` class.
+   *
+   * @deprecated Use `canvas="auto"` instead.
+   */
   @property({ attribute: 'auto-width', type: Boolean, reflect: true }) autoWidth = false;
 
   /** Swaps the opacity of duotone icons. */
@@ -87,6 +157,15 @@ export default class WaIcon extends WebAwesomeElement {
   @property({ attribute: 'size' })
   size: string = '';
 
+  /** Sets the rotation degree of the icon */
+  @property({ type: Number, reflect: true }) rotate = 0;
+
+  /** Sets the flip direction of the icon along the 'x' (horizontal), 'y' (vertical), or 'both' axes. */
+  @property({ type: String, reflect: true }) flip?: 'x' | 'y' | 'both';
+
+  /** Sets the animation for the icon */
+  @property({ type: String, reflect: true }) animation?: IconAnimation;
+
   connectedCallback() {
     super.connectedCallback();
 
@@ -95,6 +174,10 @@ export default class WaIcon extends WebAwesomeElement {
 
   firstUpdated(changedProperties: PropertyValues<this>) {
     super.firstUpdated(changedProperties);
+    // Set initial rotate angle if rotate attribute is present
+    if (this.hasAttribute('rotate')) {
+      this.style.setProperty('--rotate-angle', `${this.rotate}deg`);
+    }
     this.setIcon();
   }
 
@@ -103,15 +186,20 @@ export default class WaIcon extends WebAwesomeElement {
     unwatchIcon(this);
   }
 
-  private getIconSource(): IconSource {
+  private async getIconSource(): Promise<IconSource> {
     const library = getIconLibrary(this.library);
     const family = this.family || getDefaultIconFamily();
 
     if (this.name && library) {
-      return {
-        url: library.resolver(this.name, family, this.variant, this.autoWidth),
-        fromLibrary: true,
-      };
+      // canvas="auto" is the modern equivalent of the deprecated auto-width attribute
+      const autoWidth = this.canvas === 'auto' || this.autoWidth;
+      let url: string | undefined;
+      try {
+        url = await library.resolver(this.name, family, this.variant, autoWidth);
+      } catch {
+        url = undefined;
+      }
+      return { url, fromLibrary: true };
     }
 
     return {
@@ -190,9 +278,11 @@ export default class WaIcon extends WebAwesomeElement {
     }
   }
 
-  @watch(['family', 'name', 'library', 'variant', 'src', 'autoWidth', 'swapOpacity'], { waitUntilFirstUpdate: true })
+  @watch(['family', 'name', 'library', 'variant', 'src', 'autoWidth', 'canvas', 'swapOpacity'], {
+    waitUntilFirstUpdate: true,
+  })
   async setIcon() {
-    const { url, fromLibrary } = this.getIconSource();
+    const { url, fromLibrary } = await this.getIconSource();
     const library = fromLibrary ? getIconLibrary(this.library) : undefined;
 
     if (!url) {
@@ -212,7 +302,8 @@ export default class WaIcon extends WebAwesomeElement {
       iconCache.delete(url);
     }
 
-    if (url !== this.getIconSource().url) {
+    const sourceAfterFetch = await this.getIconSource();
+    if (url !== sourceAfterFetch.url) {
       // If the url has changed while fetching the icon, ignore this request
       return;
     }
@@ -235,6 +326,15 @@ export default class WaIcon extends WebAwesomeElement {
     }
   }
 
+  willUpdate(changedProperties: PropertyValues<this>) {
+    // This runs on the server
+    if (!this.style) {
+      this.setStyleProperty('--rotate-angle', `${this.rotate}deg`);
+    }
+
+    return super.willUpdate(changedProperties);
+  }
+
   updated(changedProperties: PropertyValues<this>) {
     super.updated(changedProperties);
 
@@ -244,7 +344,10 @@ export default class WaIcon extends WebAwesomeElement {
 
     // Sometimes (like with SSR -> hydration) mutators don't get applied due to race conditions. This ensures mutators get re-applied.
     const library = getIconLibrary(this.library);
-
+    // Set rotate angle whenever rotate attribute is present (not just on change)
+    if (this.hasAttribute('rotate')) {
+      this.style.setProperty('--rotate-angle', `${this.rotate}deg`);
+    }
     const svg = this.shadowRoot?.querySelector('svg');
     if (svg) {
       library?.mutator?.(svg, this);
@@ -255,8 +358,7 @@ export default class WaIcon extends WebAwesomeElement {
     if (this.hasUpdated) {
       return this.svg;
     }
-
-    return html`<svg part="svg" width="16" height="16"></svg>`;
+    return html`<svg part="svg" width="16" height="16" viewBox="0 0 16 16"></svg>`;
   }
 }
 

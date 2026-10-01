@@ -2,20 +2,20 @@
 title: Web Awesome
 description: Build better with Web Awesome, the open source library of web components from Font Awesome.
 layout: page
+hasGeneratedTitle: false
+hasFramedMain: false
 ---
 
 <style>
   .title,
   .anchor-heading a,
-  #outline-expandable {
+  #outline-expandable,
+  .page-footer {
     display: none;
   }
   wa-page > main {
-    --content-width: 56rem;
-    --content-padding-inline: 2rem;
+    --content-width: var(--content-width-l);
     --content-flow-spacing: 4rem;
-    max-width: 100%;
-    padding: 0 !important;
     & p, h1, h2, h3, h4, h5, h6 {
       margin: 0;
     }
@@ -28,7 +28,7 @@ layout: page
     }
   }
 
-  .brand-font {
+  .font-brand {
     font-family: cera-round-pro;
   }
   .emphasis {
@@ -45,31 +45,24 @@ layout: page
     }
   }
   .hero-background {
-    background-color: var(--wa-brand-orange);
-    background-image: linear-gradient(color-mix(in oklab, var(--wa-brand-orange), orangered 40%) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--wa-brand-orange), orangered 40%) 1px, transparent 1px);
-    background-size: 2rem 2rem;
-    color: white;
-    padding: calc(var(--content-flow-spacing) * 1.875) 0 var(--content-flow-spacing) 0;
-  }
-  .hero-content {
-    max-width: var(--content-width);
+    --spacing: var(--wa-space-2xl);
+    --background-pattern-image: url('/assets/images/bg-wa-pattern.svg');
+    --background-pattern-opacity: 0.2;
+    background: linear-gradient(rgb(244, 106, 69), rgb(205, 73, 28));
+    color: var(--wa-color-brand-on-loud);
+    border-width: 0;
+    max-inline-size: var(--content-width);
     margin-inline: auto;
-    padding-inline: var(--content-padding-inline);
-    & > * + * {
-      margin-block-start: 2rem;
-    }
-    & h1 {
-      font-size: clamp(2.5625rem, 13vw, 3.25rem);
-    }
-    & .emphasis::after {
-      background-color: var(--wa-brand-grey);
-    }
-    & .wa-crown svg {
-      width: 4rem;
-      & path {
-        fill: white;
-      }
-    }
+    margin-block-end: var(--content-flow-spacing);
+  }
+  .hero-background h1 {
+    font-size: clamp(2.5625rem, 13vw, 3.25rem);
+  }
+  .hero-background .emphasis::after {
+    background-color: var(--wa-brand-grey);
+  }
+  .hero-background .logo-app {
+    color: var(--wa-color-brand-on-loud);
   }
   .hero-cta {
     display: flex;
@@ -162,6 +155,7 @@ layout: page
     flex-direction: column;
     gap: 1rem;
     font-size: 0.875rem;
+
     & .wa-crown svg {
       width: 2rem;
     }
@@ -227,30 +221,28 @@ layout: page
   }
 </style>
 
-<div class="hero-background">
-  <div class="hero-content">
-    <div class="wa-crown">
-      {% include "logo-simple.njk" %}
-    </div>
-    <h1 class="brand-font">Make something <span class="emphasis">awesome</span> with open-source web components</h1>
+<wa-card class="hero-background background-wa-pattern" appearance="plain">
+  <div class="wa-stack wa-gap-xl">
+    <wa-icon name="web-awesome" family="brands" class="logo-app wa-heading-4xl"></wa-icon>
+    <h1 class="font-brand">Make something <span class="emphasis">awesome</span> with open-source web components</h1>
     <div class="hero-cta">
       {%- raw -%}
         {% if currentUser.hasPro %}
-          <span class="wa-font-size-l" style="text-align: center; width: 100%;">Thanks for being a Web Awesome Pro subscriber!</span>
+          <span class="wa-font-size-l" style="text-align: center; width: 100%;">Thanks for being a {{ site.namePro }} subscriber!</span>
         {% else %}
           <div class="wa-stack wa-gap-xs">
-            <h3 class="wa-heading-m">Get More with Web Awesome Pro!</h3>
+            <h3 class="wa-heading-m">Get More with {{ site.namePro }}!</h3>
             <p>Unlock Pro-only themes, components, patterns, and great services like the Theme Builder.</p>
           </div>
-          <wa-button class="wa-dark" size="small" href="/purchase">
+          <wa-button class="wa-dark" size="s" href="/pro?from=docs-landing">
             <wa-icon slot="start" name="rocket-launch"></wa-icon>
-            Purchase Pro
+            Get Pro
           </wa-button>
         {% endif %}
       {% endraw %}
     </div>
   </div>
-</div>
+</wa-card>
 
 <div class="home-wrapper">
   <wa-button href="/docs/" appearance="outlined" class="tile">
@@ -267,7 +259,7 @@ layout: page
   </wa-button>
   <wa-divider></wa-divider>
   <div class="summary">
-    <h2 class="brand-font">What's <span class="emphasis">Web</span> Awesome?</h2>
+    <h2 class="font-brand">What's <span class="emphasis">Web</span> Awesome?</h2>
     <p>Web Awesome is the biggest open-source library of meticulously designed, highly customizable, and framework-agnostic UI components.</p>
     <div class="grid">
       <div class="wa-stack">
@@ -296,19 +288,19 @@ layout: page
           <wa-icon name="handshake-simple" class="brand-orange"></wa-icon>
           <h3>Proudly open source</h3>
         </div>
-        <p>Use Web Awesome Free however you like. Always free, always open source.</p>
+        <p>Use {{ site.nameCore }} however you like. Always free, always open source.</p>
       </div>
     </div>
   </div>
 
   <div class="split-block">
     <div>
-      <h2 class="brand-font"><span class="emphasis">You</span> put the awesome in Web Awesome</h2>
+      <h2 class="font-brand"><span class="emphasis">You</span> put the awesome in Web Awesome</h2>
       <p>Web Awesome started as an open-source project fueled by contributions from an engaged community of developers, and we want to keep it that way. The core of Web Awesome is — and always will be — free and open source.</p>
       <p>Whether you’re a developer, designer, or budding tech nerd, we want you a part of the conversation.</p>
     </div>
     <div>
-      <wa-button href="https://github.com/shoelace-style/webawesome" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
+      <wa-button href="{{ site.github.repo }}" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
         <div class="wa-stack">
           <div class="wa-split">
             <div class="wa-cluster icon-heading">
@@ -320,7 +312,7 @@ layout: page
           <p>Get involved by opening issues, contributing to discussions, or creating PRs.</p>
         </div>
       </wa-button>
-      <wa-button href="https://discord.gg/mg8f26C" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
+      <wa-button href="{{ site.urls.discord }}" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
         <div class="wa-stack">
           <div class="wa-split">
             <div class="wa-cluster icon-heading">
@@ -332,12 +324,12 @@ layout: page
           <p>Share your work, ask questions, and explore ideas with other Web Awesome builders.</p>
         </div>
       </wa-button>
-      <wa-button href="mailto:hello@webawesome.com" appearance="filled" class="tile">
+      <wa-button href="mailto:{{ site.emails.hello }}" appearance="filled" class="tile">
         <div class="wa-split">
           <div class="wa-cluster icon-heading">
             <wa-icon name="envelope-open"></wa-icon>
             <h3 class="wa-cluster wa-gap-xs">
-              <span>hello@webawesome.com</span>
+              <span>{{ site.emails.hello }}</span>
               <wa-icon name="hand-wave" variant="regular"></wa-icon>
             </h3>
           </div>
@@ -350,12 +342,12 @@ layout: page
 <wa-divider></wa-divider>
 
   <div class="wa-stack wa-gap-xl">
-    <h2 class="wa-cluster brand-font">
+    <h2 class="wa-cluster font-brand">
       <wa-icon name="hashtag" style="color: var(--wa-brand-orange);"></wa-icon>
       <span>Stay in the know</span>
     </h2>
     <div class="wa-grid" style="--min-column-size: 30ch;">
-      <wa-button href="https://bsky.app/profile/webawesome.com" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
+      <wa-button href="{{ site.urls.bluesky }}" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
         <div class="wa-split">
           <div class="wa-cluster icon-heading">
             <wa-icon family="brands" name="bluesky"></wa-icon>
@@ -364,7 +356,7 @@ layout: page
           <wa-icon name="arrow-up-right"></wa-icon>
         </div>
       </wa-button>
-      <wa-button href="https://mastodon.social/@webawesome" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
+      <wa-button href="{{ site.urls.mastodon }}" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
         <div class="wa-split">
           <div class="wa-cluster icon-heading">
             <wa-icon family="brands" name="mastodon"></wa-icon>
@@ -373,7 +365,7 @@ layout: page
           <wa-icon name="arrow-up-right"></wa-icon>
         </div>
       </wa-button>
-      <wa-button href="https://x.com/webawesomer" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
+      <wa-button href="{{ site.urls.x }}" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
         <div class="wa-split">
           <div class="wa-cluster icon-heading">
             <wa-icon family="brands" name="x-twitter"></wa-icon>
@@ -382,7 +374,7 @@ layout: page
           <wa-icon name="arrow-up-right"></wa-icon>
         </div>
       </wa-button>
-      <wa-button href="https://www.threads.com/@web.awesome" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
+      <wa-button href="{{ site.urls.threads }}" rel="noopener noreferrer" target="_blank" appearance="filled" class="tile">
         <div class="wa-split">
           <div class="wa-cluster icon-heading">
             <wa-icon family="brands" name="threads"></wa-icon>
@@ -397,13 +389,11 @@ layout: page
 <wa-divider></wa-divider>
 
   <footer>
-    <div class="wa-crown">
-      {% include "logo-simple.njk" %}
-    </div>
+    <wa-icon name="web-awesome" family="brands" class="logo-app wa-body-l"></wa-icon>
     <div class="split-block">
       <div>
-        <strong class="brand-font tagline">Let's Make Something Awesome</strong>
-        <p>Web Awesome is the design system platform and open source library of web components from your fellow nerds at <a href="https://www.fontawesome.com/">Font Awesome</a>.</p>
+        <strong class="font-brand tagline">Let's Make Something Awesome</strong>
+        <p>Web Awesome is the design system platform and open source library of web components from your fellow nerds at <a href="{{ site.siblings.fontAwesome.url }}">{{ site.siblings.fontAwesome.name }}</a>.</p>
       </div>
       <div class="attribution">
         <span>Special thanks</span>
@@ -413,12 +403,12 @@ layout: page
           <wa-button appearance="filled" pill href="https://github.com/open-wc/custom-elements-manifest">Custom Elements Manifest</wa-button>
           <wa-button appearance="filled" pill href="https://floating-ui.com/">Floating UI</wa-button>
           <wa-button appearance="filled" pill href="https://animate.style/">animate.css</wa-button>
-          <wa-button appearance="filled" pill href="https://lunrjs.com/">Lunr</wa-button>
+          <wa-button appearance="filled" pill href="https://lucaong.github.io/minisearch/">MiniSearch</wa-button>
         </div>
       </div>
     </div>
     <div>
-      &copy; Fonticons, Inc.
+      &copy; {{ site.company }}
     </div>
   </footer>
 </div>

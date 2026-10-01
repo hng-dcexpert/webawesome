@@ -19,10 +19,17 @@ export default css`
     border-style: var(--wa-form-control-border-style);
     border-width: var(--wa-form-control-border-width);
     -webkit-appearance: none;
+    outline: var(--wa-focus-ring-style) var(--wa-focus-ring-width) transparent;
+    outline-offset: var(--wa-focus-ring-offset);
 
     &:focus-within {
-      outline: var(--wa-focus-ring);
-      outline-offset: var(--wa-focus-ring-offset);
+      outline-color: var(--wa-color-focus);
+    }
+
+    /* Style disabled textareas */
+    &:has(:disabled) {
+      cursor: not-allowed;
+      opacity: 0.5;
     }
   }
 
@@ -49,6 +56,8 @@ export default css`
     background: transparent;
     font: inherit;
     color: inherit;
+    cursor: inherit;
+    scroll-padding-block: var(--wa-form-control-padding-block);
     padding: calc(var(--wa-form-control-padding-block) - ((1lh - 1em) / 2)) var(--wa-form-control-padding-inline); /* accounts for the larger line height of textarea content */
     min-height: calc(var(--wa-form-control-height) - var(--border-width) * 2);
     box-shadow: none;
@@ -120,5 +129,37 @@ export default css`
     height: auto;
     resize: none;
     overflow-y: hidden;
+  }
+
+  /*
+   * Footer (hint + character count)
+   */
+
+  /*
+   * This element carries the hint part, so the shared form control styles apply to it. Those styles set display:block
+   * and hide the element when it has no hint, both of which have to be undone when a character count is present.
+   */
+  .footer.has-slotted,
+  .footer.has-count {
+    display: flex;
+    align-items: baseline;
+    gap: 1em;
+  }
+
+  /* Slots default to display:contents, which would leave the hint unable to shrink below its content */
+  .footer.has-count .hint {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .count {
+    flex: 0 0 auto;
+    color: var(--wa-form-control-hint-color);
+    font-weight: var(--wa-form-control-hint-font-weight);
+    line-height: var(--wa-form-control-hint-line-height);
+    margin-block-start: 0.5em;
+    font-size: var(--wa-font-size-smaller);
+    margin-inline-start: auto;
   }
 `;

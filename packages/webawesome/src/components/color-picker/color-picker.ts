@@ -7,9 +7,11 @@ import { ifDefined } from 'lit/directives/if-defined.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { WaInvalidEvent } from '../../events/invalid.js';
 import { animateWithClass } from '../../internal/animate.js';
+import { isTopDismissible, registerDismissible, unregisterDismissible } from '../../internal/dismissible-stack.js';
 import { drag } from '../../internal/drag.js';
 import { waitForEvent } from '../../internal/event.js';
 import { clamp } from '../../internal/math.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { RequiredValidator } from '../../internal/validators/required-validator.js';
 import { watch } from '../../internal/watch.js';
@@ -27,6 +29,11 @@ import '../popup/popup.js';
 import type WaPopup from '../popup/popup.js';
 import styles from './color-picker.styles.js';
 
+export interface WaColorPickerSwatch {
+  color: string;
+  label: string;
+}
+
 interface EyeDropperConstructor {
   new (): EyeDropperInterface;
 }
@@ -38,7 +45,8 @@ interface EyeDropperInterface {
 declare const EyeDropper: EyeDropperConstructor;
 
 /**
- * @summary Color pickers allow the user to select a color.
+ * @summary Color pickers let users choose a color from a visual palette or by entering a value. They support HEX, RGB,
+ *  HSL, and HSV formats with optional alpha channel and swatch presets.
  * @documentation https://webawesome.com/docs/components/color-picker
  * @status stable
  * @since 2.0
@@ -58,8 +66,14 @@ declare const EyeDropper: EyeDropperConstructor;
  * @event input - Emitted when the color picker receives input.
  * @event wa-invalid - Emitted when the form control has been checked for validity and its constraints aren't satisfied.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `color-picker` part instead.
+ * @csspart color-picker - The dropdown panel that holds the grid, sliders, and swatches.
  * @csspart trigger - The color picker's dropdown trigger.
+ * @csspart trigger-container - The container that wraps the color picker's trigger.
+ * @csspart form-control - The form control that wraps the label, input, and hint.
+ * @csspart form-control-label - The label.
+ * @csspart form-control-input - The color picker's trigger button.
+ * @csspart hint - The hint's wrapper.
  * @csspart swatches - The container that holds the swatches.
  * @csspart swatch - Each individual swatch.
  * @csspart grid - The color grid.
@@ -131,9 +145,9 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
 
   @state() private hasFocus = false;
   @state() private isDraggingGridHandle = false;
-  @state() private isEmpty = true;
   @state() private inputValue = '';
   @state() private hue = 0;
+  @state() private isEmpty = true;
   @state() private saturation = 100;
   @state() private brightness = 100;
   @state() private alpha = 100;
@@ -167,7 +181,16 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
   /** The default value of the form control. Primarily used for resetting the form control. */
   @property({ attribute: 'value', reflect: true }) defaultValue: string | null = this.getAttribute('value') || null;
 
+  /**
+   * Only required for SSR. Set to `true` if you're slotting in a `label` element so the server-rendered markup
+   * includes the label before the component hydrates on the client.
+   */
   @property({ attribute: 'with-label', reflect: true, type: Boolean }) withLabel = false;
+
+  /**
+   * Only required for SSR. Set to `true` if you're slotting in a `hint` element so the server-rendered markup
+   * includes the hint before the component hydrates on the client.
+   */
   @property({ attribute: 'with-hint', reflect: true, type: Boolean }) withHint = false;
 
   @state() private hasEyeDropper: boolean = false;
@@ -190,7 +213,30 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
   @property() format: 'hex' | 'rgb' | 'hsl' | 'hsv' = 'hex';
 
   /** Determines the size of the color picker's trigger */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
+
+  /**
+   * The preferred placement of the color picker's popup. Note that the actual placement will vary as configured to
+   * keep the panel inside of the viewport.
+   */
+  @property({ reflect: true }) placement:
+    | 'top'
+    | 'top-start'
+    | 'top-end'
+    | 'bottom'
+    | 'bottom-start'
+    | 'bottom-end'
+    | 'right'
+    | 'right-start'
+    | 'right-end'
+    | 'left'
+    | 'left-start'
+    | 'left-end' = 'bottom-start';
 
   /** Removes the button that lets users toggle between format.   */
   @property({ attribute: 'without-format-toggle', type: Boolean }) withoutFormatToggle = false;
@@ -216,9 +262,11 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
   /**
    * One or more predefined color swatches to display as presets in the color picker. Can include any format the color
    * picker can parse, including HEX(A), RGB(A), HSL(A), HSV(A), and CSS color names. Each color must be separated by a
-   * semicolon (`;`). Alternatively, you can pass an array of color values to this property using JavaScript.
+   * semicolon (`;`). Alternatively, you can pass an array of color values or an array of `{ color, label }` objects to
+   * this property using JavaScript. When using objects with labels, the label will be used for the swatch's accessible
+   * name instead of the raw color value.
    */
-  @property() swatches: string | string[] = '';
+  @property() swatches: string | string[] | WaColorPickerSwatch[] = '';
 
   /** Makes the color picker a required field. */
   @property({ type: Boolean, reflect: true }) required = false;
@@ -230,6 +278,30 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
       this.addEventListener('focusin', this.handleFocusIn);
       this.addEventListener('focusout', this.handleFocusOut);
     }
+
+    // Attribute values aren't applied to properties until the first update, but the initial value sync below serializes
+    // the value using them. Read them off the element directly, like defaultValue above, so an initial HEXA/RGBA/HSLA
+    // value keeps its alpha, format, and letter case.
+    this.opacity = this.hasAttribute('opacity');
+    this.uppercase = this.hasAttribute('uppercase');
+    const format = this.getAttribute('format');
+    if (format === 'rgb' || format === 'hsl' || format === 'hsv') {
+      this.format = format;
+    }
+
+    // need to set initial values on the server. looks funky, but it works.
+    this.handleValueChange('', this.value || '');
+  }
+
+  /**
+   * @internal
+   */
+  protected updateFormValue(value: unknown) {
+    if (value == null) {
+      this.setValue('', null);
+      return;
+    }
+    super.updateFormValue(value);
   }
 
   private handleCopy() {
@@ -750,24 +822,23 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
     this.syncValues();
   }
 
-  @watch('opacity')
+  @watch('opacity', { waitUntilFirstUpdate: true })
   handleOpacityChange() {
     this.alpha = 100;
   }
 
-  protected willUpdate(changedProperties: PropertyValues<this>): void {
-    super.willUpdate(changedProperties);
-
-    // Its kind of bizarre, but this is required to get SSR to play nicely.
-    if (changedProperties.has('value')) {
+  willUpdate(changedProperties: PropertyValues<this>) {
+    // this is for the server to be honest, but it needs to be here to get properly synced values. Without this, the server just sees nothing for a value
+    if (changedProperties.has('value') || changedProperties.has('defaultValue')) {
       this.handleValueChange(changedProperties.get('value') || '', this.value || '');
     }
+
+    super.willUpdate(changedProperties);
   }
 
   @watch('value')
   handleValueChange(oldValue: string | undefined, newValue: string) {
     this.isEmpty = !newValue;
-
     if (!newValue) {
       this.hue = 0;
       this.saturation = 0;
@@ -783,7 +854,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
         this.hue = newColor.hsva.h;
         this.saturation = newColor.hsva.s;
         this.brightness = newColor.hsva.v;
-        this.alpha = newColor.hsva.a * 100;
+        this.alpha = this.opacity ? newColor.hsva.a * 100 : 100;
         this.syncValues();
       } else {
         this.inputValue = oldValue ?? '';
@@ -890,7 +961,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
   private handleKeyDown = (event: KeyboardEvent) => {
     // Close when escape is pressed inside an open popup. We need to listen on the panel itself and stop propagation
     // in case any ancestors are also listening for this key.
-    if (this.open && event.key === 'Escape') {
+    if (this.open && event.key === 'Escape' && isTopDismissible(this)) {
       event.stopPropagation();
       this.hide();
       this.focus();
@@ -899,7 +970,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
 
   private handleDocumentKeyDown = (event: KeyboardEvent) => {
     // Close when escape or tab is pressed
-    if (event.key === 'Escape' && this.open) {
+    if (event.key === 'Escape' && this.open && isTopDismissible(this)) {
       event.stopPropagation();
       this.focus();
       this.hide();
@@ -998,6 +1069,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
     this.base.addEventListener('keydown', this.handleKeyDown);
     document.addEventListener('keydown', this.handleDocumentKeyDown);
     document.addEventListener('mousedown', this.handleDocumentMouseDown);
+    registerDismissible(this);
   }
 
   removeOpenListeners() {
@@ -1006,6 +1078,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
     }
     document.removeEventListener('keydown', this.handleDocumentKeyDown);
     document.removeEventListener('mousedown', this.handleDocumentMouseDown);
+    unregisterDismissible(this);
   }
 
   @watch('open', { waitUntilFirstUpdate: true })
@@ -1040,20 +1113,24 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
   }
 
   render() {
-    const hasLabelSlot = !this.hasUpdated ? this.withLabel : this.withLabel || this.hasSlotController.test('label');
-    const hasHintSlot = !this.hasUpdated ? this.withHint : this.withHint || this.hasSlotController.test('hint');
+    const isEmpty = this.isEmpty;
+    const hasLabelSlot = this.hasSlotController.test('label', 'withLabel');
+    const hasHintSlot = this.hasSlotController.test('hint', 'withHint');
     const hasLabel = this.label ? true : !!hasLabelSlot;
     const hasHint = this.hint ? true : !!hasHintSlot;
 
     const gridHandleX = this.saturation;
     const gridHandleY = 100 - this.brightness;
-    const swatches = Array.isArray(this.swatches)
-      ? this.swatches // allow arrays for legacy purposes
-      : this.swatches.split(';').filter(color => color.trim() !== '');
+    const normalizedSwatches: WaColorPickerSwatch[] = Array.isArray(this.swatches)
+      ? this.swatches.map(s => (typeof s === 'string' ? { color: s, label: s } : s))
+      : this.swatches
+          .split(';')
+          .filter(color => color.trim() !== '')
+          .map(color => ({ color: color.trim(), label: color.trim() }));
 
     const colorPicker = html`
       <div
-        part="base"
+        part="base color-picker"
         class=${classMap({
           'color-picker': true,
         })}
@@ -1167,12 +1244,13 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
             part="input"
             type="text"
             name=${this.name}
-            size="small"
+            size="s"
             autocomplete="off"
             autocorrect="off"
             autocapitalize="off"
             spellcheck="false"
-            .value=${this.isEmpty ? '' : this.inputValue}
+            .value=${isEmpty ? '' : this.inputValue}
+            value=${isEmpty ? '' : this.inputValue}
             ?required=${this.required}
             ?disabled=${this.disabled}
             aria-label=${this.localize.term('currentValue')}
@@ -1188,7 +1266,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
               ? html`
                   <wa-button
                     part="format-button"
-                    size="small"
+                    size="s"
                     appearance="outlined"
                     aria-label=${this.localize.term('toggleColorFormat')}
                     exportparts="
@@ -1210,7 +1288,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
               ? html`
                   <wa-button
                     part="eyedropper-button"
-                    size="small"
+                    size="s"
                     appearance="outlined"
                     exportparts="
                       base:eyedropper-button__base,
@@ -1235,11 +1313,11 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
           </wa-button-group>
         </div>
 
-        ${swatches.length > 0
+        ${normalizedSwatches.length > 0
           ? html`
               <div part="swatches" class="swatches">
-                ${swatches.map(swatch => {
-                  const parsedColor = this.parseColor(swatch);
+                ${normalizedSwatches.map(swatch => {
+                  const parsedColor = this.parseColor(swatch.color);
 
                   // If we can't parse it, skip it
                   if (!parsedColor) {
@@ -1252,10 +1330,14 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
                       class="swatch transparent-bg"
                       tabindex=${ifDefined(this.disabled ? undefined : '0')}
                       role="button"
-                      aria-label=${swatch}
-                      @click=${() => this.selectSwatch(swatch)}
-                      @keydown=${(event: KeyboardEvent) =>
-                        !this.disabled && event.key === 'Enter' && this.setColor(parsedColor.hexa)}
+                      aria-label=${swatch.label}
+                      @click=${() => this.selectSwatch(swatch.color)}
+                      @keydown=${(event: KeyboardEvent) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          this.selectSwatch(swatch.color);
+                        }
+                      }}
                     >
                       <div class="swatch-color" style=${styleMap({ backgroundColor: parsedColor.hexa })}></div>
                     </div>
@@ -1277,7 +1359,14 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
         })}
         part="trigger-container form-control"
       >
-        <div part="form-control-label" class="label" id="form-control-label">
+        <div
+          part="form-control-label"
+          class=${classMap({
+            label: true,
+            'has-label': hasLabel,
+          })}
+          id="form-control-label"
+        >
           <slot name="label">${this.label}</slot>
         </div>
 
@@ -1286,7 +1375,7 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
           part="trigger form-control-input"
           class=${classMap({
             trigger: true,
-            'trigger-empty': this.isEmpty,
+            'trigger-empty': isEmpty,
             'transparent-bg': true,
             'form-control-input': true,
           })}
@@ -1316,10 +1405,9 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
       <wa-popup
         class="color-popup"
         anchor="trigger"
-        placement="bottom-start"
+        placement=${this.placement}
         distance="0"
         skidding="0"
-        sync="width"
         flip
         flip-fallback-strategy="best-fit"
         shift
@@ -1333,3 +1421,16 @@ export default class WaColorPicker extends WebAwesomeFormAssociatedElement {
     `;
   }
 }
+
+// The change-in-update warning is required for this component because:
+//
+// - The base class (WebAwesomeFormAssociatedElement) firstUpdated() calls updateValidity() which triggers
+//    requestUpdate('validity').
+// - HasSlotController calls host.requestUpdate() on slotchange events.
+// - @watch('value') handler sets multiple @state properties (isEmpty, hue, saturation, brightness, alpha, inputValue)
+//    and calls syncValues() and requestUpdate() during the update cycle to keep color state in sync.
+// - @watch('opacity') and @watch('format') handlers set @state properties during update to synchronize color values.
+// - firstUpdated() sets the @state property hasEyeDropper based on browser capability detection.
+//
+// See https://lit.dev/docs/tools/development/#development-build-runtime-warnings
+WaColorPicker.disableWarning?.('change-in-update');

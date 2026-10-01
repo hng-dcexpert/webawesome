@@ -1,11 +1,20 @@
 ---
 title: Animation
-description: Animate elements declaratively with nearly 100 baked-in presets, or roll your own with custom keyframes.
 layout: component
-category: Utilities
+category: Helpers
+synonyms:
+  - motion
+  - transition
+  - keyframes
+  - animate
+use-cases:
+  - entrance animation
+  - exit animation
+  - attention seeker
+  - scroll animation
 ---
 
-To animate an element, wrap it in `<wa-animation>` and set an animation `name`. The animation will not start until you add the `play` attribute. Refer to the [properties table](#properties) for a list of all animation options.
+To animate an element, wrap it in `<wa-animation>` and set the `name` attribute. The animation will not start until you add the `play` attribute. Refer to the [properties table](#attributes-and-properties) for a list of all animation options.
 
 ```html {.example}
 <div class="animation-overview">
@@ -30,6 +39,11 @@ To animate an element, wrap it in `<wa-animation>` and set an animation `name`. 
 The animation will only be applied to the first child element found in `<wa-animation>`.
 :::
 
+:::warning
+<strong>Respect users who prefer reduced motion.</strong><br />
+`<wa-animation>` plays regardless of the user's motion preferences. Gate decorative animations behind a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) media query so they don't play for people who've asked to minimize motion.
+:::
+
 ## Examples
 
 ### Animations & Easings
@@ -42,10 +56,12 @@ This example demonstrates all of the baked-in animations and easings. Animations
     <div class="box"></div>
   </wa-animation>
 
+  <wa-divider></wa-divider>
+
   <div class="controls">
     <wa-select label="Animation" value="bounce"></wa-select>
     <wa-select label="Easing" value="linear"></wa-select>
-    <wa-input label="Playback Rate" type="number" min="0" max="2" step=".25" value="1"> </wa-input>
+    <wa-input label="Playback Rate" type="number" min="0" max="2" step=".25" value="1"></wa-input>
   </div>
 </div>
 
@@ -183,7 +199,7 @@ Animations won't play until you apply the `play` attribute. You can omit it init
 ```html {.example}
 <div class="animation-form">
   <wa-animation name="rubberBand" duration="1000" iterations="1">
-    <wa-button variant="brand">Click me</wa-button>
+    <wa-button appearance="filled" variant="brand">Click me</wa-button>
   </wa-animation>
 </div>
 

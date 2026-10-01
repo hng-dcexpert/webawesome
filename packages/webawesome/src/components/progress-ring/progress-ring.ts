@@ -1,20 +1,25 @@
 import type { PropertyValues } from 'lit';
 import { html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import WebAwesomeElement from '../../internal/webawesome-element.js';
 import { LocalizeController } from '../../utilities/localize.js';
 import styles from './progress-ring.styles.js';
 
 /**
- * @summary Progress rings are used to show the progress of a determinate operation in a circular fashion.
+ * @summary Progress rings show how far along a determinate operation is using a circular indicator. Use them as a
+ *  compact alternative to progress bars when horizontal space is limited.
  * @documentation https://webawesome.com/docs/components/progress-ring
  * @status stable
  * @since 2.0
  *
  * @slot - A label to show inside the ring.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `progress-ring` part instead.
+ * @csspart progress-ring - The component's outer wrapper.
  * @csspart label - The progress ring label.
+ * @csspart track - The progress ring's track.
+ * @csspart indicator - The progress ring's indicator.
  *
  * @cssproperty --size - The diameter of the progress ring (cannot be a percentage).
  * @cssproperty --track-width - The width of the track.
@@ -59,7 +64,7 @@ export default class WaProgressRing extends WebAwesomeElement {
   render() {
     return html`
       <div
-        part="base"
+        part="base progress-ring"
         class="progress-ring"
         role="progressbar"
         aria-label=${this.label.length > 0 ? this.label : this.localize.term('progress')}
@@ -67,11 +72,15 @@ export default class WaProgressRing extends WebAwesomeElement {
         aria-valuemin="0"
         aria-valuemax="100"
         aria-valuenow="${this.value}"
-        style="--percentage: ${this.value / 100}"
+        style=${styleMap({ '--percentage': this.value / 100 })}
       >
         <svg class="image">
-          <circle class="track"></circle>
-          <circle class="indicator" style="stroke-dashoffset: ${this.indicatorOffset}"></circle>
+          <circle part="track" class="track"></circle>
+          <circle
+            part="indicator"
+            class="indicator"
+            style=${styleMap({ 'stroke-dashoffset': this.indicatorOffset })}
+          ></circle>
         </svg>
 
         <slot id="label" part="label" class="label"></slot>
@@ -79,6 +88,11 @@ export default class WaProgressRing extends WebAwesomeElement {
     `;
   }
 }
+
+// The change-in-update warning is expected because the Safari workaround in updated() must read getComputedStyle() from
+// the rendered DOM to compute the indicator's stroke-dashoffset in pixels, then set the indicatorOffset @state()
+// property. This cannot move to willUpdate() since the DOM is not yet available at that point. See https://lit.dev/docs/tools/development/#development-build-runtime-warnings
+WaProgressRing.disableWarning?.('change-in-update');
 
 declare global {
   interface HTMLElementTagNameMap {

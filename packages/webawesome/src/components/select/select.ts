@@ -10,8 +10,10 @@ import { WaHideEvent } from '../../events/hide.js';
 import { WaRemoveEvent } from '../../events/remove.js';
 import { WaShowEvent } from '../../events/show.js';
 import { animateWithClass } from '../../internal/animate.js';
+import { isTopDismissible, registerDismissible, unregisterDismissible } from '../../internal/dismissible-stack.js';
 import { waitForEvent } from '../../internal/event.js';
 import { scrollIntoView } from '../../internal/scroll.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { RequiredValidator } from '../../internal/validators/required-validator.js';
 import { watch } from '../../internal/watch.js';
@@ -28,7 +30,8 @@ import '../tag/tag.js';
 import styles from './select.styles.js';
 
 /**
- * @summary Selects allow you to choose items from a menu of predefined options.
+ * @summary Selects let users choose one or more values from a dropdown list of predefined options. Use them in forms
+ *  when a fixed set of choices needs to fit in limited space.
  * @documentation https://webawesome.com/docs/components/select
  * @status stable
  * @since 2.0
@@ -58,7 +61,8 @@ import styles from './select.styles.js';
  * @event wa-invalid - Emitted when the form control has been checked for validity and its constraints aren't satisfied.
  *
  * @csspart form-control - The form control that wraps the label, input, and hint.
- * @csspart form-control-label - The label's wrapper.
+ * @csspart form-control-label - The label.
+ * @csspart label - Deprecated. Use the `form-control-label` part instead.
  * @csspart form-control-input - The select's wrapper.
  * @csspart hint - The hint's wrapper.
  * @csspart combobox - The container the wraps the start, end, value, clear icon, and expand button.
@@ -74,8 +78,8 @@ import styles from './select.styles.js';
  * @csspart clear-button - The clear button.
  * @csspart expand-icon - The container that wraps the expand icon.
  *
- * @cssproperty [--show-duration=100ms] - The duration of the show animation.
- * @cssproperty [--hide-duration=100ms] - The duration of the hide animation.
+ * @cssproperty [--show-duration=var(--wa-transition-fast)] - The duration of the show animation.
+ * @cssproperty [--hide-duration=var(--wa-transition-fast)] - The duration of the hide animation.
  * @cssproperty [--tag-max-size=10ch] - When using `multiple`, the max size of tags before their content is truncated.
  *
  * @cssstate blank - The select is empty.
@@ -97,11 +101,13 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
 
   assumeInteractionOn = ['blur', 'input'];
 
+  private cachedOptions: WaOption[] | null = null;
   private readonly hasSlotController = new HasSlotController(this, 'hint', 'label');
   private readonly localize = new LocalizeController(this);
   private selectionOrder: Map<string, number> = new Map();
   private typeToSelectString = '';
   private typeToSelectTimeout: number;
+  private slotChangePending = false;
 
   @query('.select') popup: WaPopup;
   @query('.combobox') combobox: HTMLSlotElement;
@@ -117,7 +123,8 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   @state() displayLabel = '';
   @state() currentOption: WaOption;
   @state() selectedOptions: WaOption[] = [];
-  @state() optionValues: Set<string | null> | undefined;
+  /** @internal */
+  optionValues: Set<string | null> | undefined;
 
   /** The name of the select, submitted as a name/value pair with form data. */
   @property({ reflect: true }) name = '';
@@ -133,6 +140,13 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
 
   get defaultValue() {
     return this.convertDefaultValue(this._defaultValue);
+  }
+
+  private rawValuesEqual(a: string[] | null | undefined, b: string[] | null | undefined): boolean {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+    return a.every((v, i) => v === b[i]);
   }
 
   /**
@@ -165,10 +179,13 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
       val = [val];
     }
 
+    const oldRawValue = this._value;
     this._value = val ?? null;
-    let newValue = this.value;
 
-    if (newValue !== oldValue) {
+    // Compare raw internal values to detect actual changes. We can't rely on the getter because it filters through
+    // optionValues, which may be empty when options aren't in the DOM yet (common with frameworks that set properties
+    // before appending children).
+    if (!this.rawValuesEqual(oldRawValue, this._value)) {
       this.valueHasChanged = true;
       this.requestUpdate('value', oldValue);
     }
@@ -181,15 +198,14 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
       value = Array.isArray(value) ? value : [value];
     }
 
-    if (value == null) {
-      this.optionValues = new Set(null);
-    } else {
-      this.optionValues = new Set(
-        this.getAllOptions()
-          .filter(option => !option.disabled)
-          .map(option => option.value),
-      );
-    }
+    // Build optionValues from the cached options list. This is rebuilt each time the getter is called rather than
+    // cached, because caching created stale-state bugs when the value was set before options existed in the DOM. The
+    // underlying getAllOptions() is already cached via cachedOptions, so this is cheap.
+    this.optionValues = new Set(
+      this.getAllOptions()
+        .filter(option => !option.disabled)
+        .map(option => option.value),
+    );
 
     // Drop values not in the DOM
     let ret: null | string | string[] = value;
@@ -203,7 +219,12 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   }
 
   /** The select's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
 
   /** Placeholder text to show as a hint when the select is empty. */
   @property() placeholder = '';
@@ -248,12 +269,14 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   @property({ attribute: 'hint' }) hint = '';
 
   /**
-   * Used for SSR purposes when a label is slotted in. Will show the label on first render.
+   * Only required for SSR. Set to `true` if you're slotting in a `label` element so the server-rendered markup
+   * includes the label before the component hydrates on the client.
    */
   @property({ attribute: 'with-label', type: Boolean }) withLabel = false;
 
   /**
-   * Used for SSR purposes when hint is slotted in. Will show the hint on first render.
+   * Only required for SSR. Set to `true` if you're slotting in a `hint` element so the server-rendered markup
+   * includes the hint before the component hydrates on the client.
    */
   @property({ attribute: 'with-hint', type: Boolean }) withHint = false;
 
@@ -290,10 +313,18 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   connectedCallback() {
     super.connectedCallback();
 
-    this.handleDefaultSlotChange();
+    // Call processSlotChange directly so initial setup is synchronous.
+    // Subsequent option additions will be batched via handleDefaultSlotChange.
+    this.processSlotChange();
 
     // Because this is a form control, it shouldn't be opened initially
     this.open = false;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeOpenListeners();
+    this.cachedOptions = null;
   }
 
   private updateDefaultValue() {
@@ -317,6 +348,7 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
     document.addEventListener('focusin', this.handleDocumentFocusIn);
     document.addEventListener('keydown', this.handleDocumentKeyDown);
     document.addEventListener('mousedown', this.handleDocumentMouseDown);
+    registerDismissible(this);
 
     // If the component is rendered in a shadow root, we need to attach the focusin listener there too
     if (this.getRootNode() !== document) {
@@ -328,6 +360,7 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
     document.removeEventListener('focusin', this.handleDocumentFocusIn);
     document.removeEventListener('keydown', this.handleDocumentKeyDown);
     document.removeEventListener('mousedown', this.handleDocumentMouseDown);
+    unregisterDismissible(this);
 
     if (this.getRootNode() !== document) {
       this.getRootNode().removeEventListener('focusin', this.handleDocumentFocusIn);
@@ -357,7 +390,7 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
     }
 
     // Close when pressing escape
-    if (event.key === 'Escape' && this.open) {
+    if (event.key === 'Escape' && this.open && isTopDismissible(this)) {
       event.preventDefault();
       event.stopPropagation();
       this.hide();
@@ -515,7 +548,11 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   private handleClearClick(event: MouseEvent) {
     event.stopPropagation();
 
+    this.hasInteracted = true;
+    this.valueHasChanged = true;
+
     if (this.value !== null) {
+      this.displayLabel = '';
       this.selectionOrder.clear();
       this.setSelectedOptions([]);
       this.displayInput.focus({ preventScroll: true });
@@ -569,12 +606,31 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
 
   /* @internal - used by options to update labels */
   public handleDefaultSlotChange() {
+    if (this.slotChangePending) return;
+
+    this.slotChangePending = true;
+    queueMicrotask(() => {
+      this.slotChangePending = false;
+      this.processSlotChange();
+    });
+  }
+
+  private processSlotChange() {
     if (!customElements.get('wa-option')) {
       customElements.whenDefined('wa-option').then(() => this.handleDefaultSlotChange());
     }
 
+    if (this.didSSR && !this.hasUpdated) {
+      this.updateComplete.then(() => {
+        this.handleDefaultSlotChange();
+      });
+      return;
+    }
+
+    // Invalidate the options cache since slots have changed
+    this.cachedOptions = null;
+
     const allOptions = this.getAllOptions();
-    this.optionValues = undefined; // dirty the value so it gets recalculated
 
     // Update defaultValue if it hasn't been explicitly set and we have selected options
     this.updateDefaultValue();
@@ -630,10 +686,12 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
 
   // Gets an array of all `<wa-option>` elements
   private getAllOptions() {
+    if (this.cachedOptions) return this.cachedOptions;
     if (!this?.querySelectorAll) {
       return [];
     }
-    return [...this.querySelectorAll<WaOption>('wa-option')];
+    this.cachedOptions = [...this.querySelectorAll<WaOption>('wa-option')];
+    return this.cachedOptions;
   }
 
   // Gets the first `<wa-option>` element
@@ -657,7 +715,11 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
       this.currentOption = option;
       option.current = true;
       option.tabIndex = 0;
-      option.focus();
+      option.focus({ preventScroll: true });
+
+      if (this.open && !this.listbox.hidden) {
+        scrollIntoView(option, this.listbox, 'vertical', 'auto');
+      }
     }
   }
 
@@ -698,6 +760,18 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   // current value, and the display value. The option component uses it internally to update labels as they change.
   public selectionChanged() {
     const options = this.getAllOptions();
+
+    // if (options.some((option) => {
+    //   option.didSSR && !option.hasUpdated
+    // })) {
+    //   Promise.allSettled(options.map((opt) => {
+    //     return opt.updateComplete
+    //   })).then(() => {
+    //     this.processSlotChange()
+    //   })
+
+    //   return
+    // }
 
     // Update selected options cache
     const newSelectedOptions = options.filter(el => {
@@ -790,6 +864,8 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
               remove-button:tag__remove-button,
               remove-button__base:tag__remove-button__base
             "
+            ?pill=${this.pill}
+            size=${this.size}
             >+${this.selectedOptions.length - index}</wa-tag
           >
         `;
@@ -801,8 +877,8 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   updated(changedProperties: PropertyValues<this>) {
     super.updated(changedProperties);
 
-    if (changedProperties.has('value')) {
-      this.customStates.set('blank', !this.value);
+    if (changedProperties.has('value') || changedProperties.has('displayLabel')) {
+      this.customStates.set('blank', !this.value && !this.displayLabel);
     }
   }
 
@@ -919,13 +995,15 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
   }
 
   render() {
-    const hasLabelSlot = this.hasUpdated ? this.hasSlotController.test('label') : this.withLabel;
-    const hasHintSlot = this.hasUpdated ? this.hasSlotController.test('hint') : this.withHint;
+    const hasLabelSlot = this.hasSlotController.test('label', 'withLabel');
+    const hasHintSlot = this.hasSlotController.test('hint', 'withHint');
     const hasLabel = this.label ? true : !!hasLabelSlot;
     const hasHint = this.hint ? true : !!hasHintSlot;
     const hasClearIcon =
-      (this.hasUpdated || isServer) && this.withClear && !this.disabled && this.value && this.value.length > 0;
-    const isPlaceholderVisible = Boolean(this.placeholder && (!this.value || this.value.length === 0));
+      (this.hasUpdated || isServer) &&
+      this.withClear &&
+      !this.disabled &&
+      (this.displayLabel || (this.value && this.value.length > 0));
 
     return html`
       <div
@@ -938,7 +1016,10 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
         <label
           id="label"
           part="form-control-label label"
-          class="label"
+          class=${classMap({
+            label: true,
+            'has-label': hasLabel,
+          })}
           aria-hidden=${hasLabel ? 'false' : 'true'}
           @click=${this.handleLabelClick}
         >
@@ -953,7 +1034,6 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
               disabled: this.disabled,
               enabled: !this.disabled,
               multiple: this.multiple,
-              'placeholder-visible': isPlaceholderVisible,
             })}
             placement=${this.placement}
             flip
@@ -1069,6 +1149,13 @@ export default class WaSelect extends WebAwesomeFormAssociatedElement {
     `;
   }
 }
+
+// The change-in-update warning is required for this component because the form-associated base class calls
+// updateValidity() in firstUpdated(), which triggers requestUpdate('validity') to sync the validation state after the
+// first render when the validation target is available. Additionally, HasSlotController triggers requestUpdate() on
+// initial slotchange events, and selectionChanged() sets @state properties (displayLabel, selectedOptions) in response
+// to slot content changes. See https://lit.dev/docs/tools/development/#development-build-runtime-warnings
+WaSelect.disableWarning?.('change-in-update');
 
 declare global {
   interface HTMLElementTagNameMap {

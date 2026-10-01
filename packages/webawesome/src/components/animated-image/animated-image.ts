@@ -1,5 +1,6 @@
-import { html } from 'lit';
+import { html, type PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { WaErrorEvent } from '../../events/error.js';
 import { WaLoadEvent } from '../../events/load.js';
 import { watch } from '../../internal/watch.js';
@@ -9,7 +10,8 @@ import '../icon/icon.js';
 import styles from './animated-image.styles.js';
 
 /**
- * @summary A component for displaying animated GIFs and WEBPs that play and pause on interaction.
+ * @summary Animated images display GIFs and WEBPs with controls to play and pause them on demand. Use them when you
+ *  want motion but need to give users control over when it plays.
  * @documentation https://webawesome.com/docs/components/animated-image
  * @status stable
  * @since 2.0
@@ -26,6 +28,8 @@ import styles from './animated-image.styles.js';
  *
  * @cssproperty --control-box-size - The size of the icon box.
  * @cssproperty --icon-size - The size of the play/pause icons.
+ *
+ * @ssr - Due to browser limitations, `<wa-animated-image>` can't render during SSR. As a fallback you can use a `<video>` tag, but its controls won't work, and the gif or webp will always auto-play.
  */
 @customElement('wa-animated-image')
 export default class WaAnimatedImage extends WebAwesomeElement {
@@ -56,6 +60,21 @@ export default class WaAnimatedImage extends WebAwesomeElement {
       event.preventDefault();
       this.play = !this.play;
     }
+  }
+
+  firstUpdated(changedProperties: PropertyValues<this>) {
+    if (this.didSSR) {
+      const img = this.animatedImage;
+      if (img && img.complete) {
+        // The image has loaded prior to this element connecting, so we need to simulate error / load events respectively.
+        if (img.naturalWidth > 0) {
+          img.dispatchEvent(new Event('load'));
+        } else {
+          img.dispatchEvent(new Event('error'));
+        }
+      }
+    }
+    super.firstUpdated(changedProperties);
   }
 
   private handleLoad() {
@@ -95,6 +114,10 @@ export default class WaAnimatedImage extends WebAwesomeElement {
     const verb = this.localize.term(this.play ? 'pauseAnimation' : 'playAnimation');
     const label = `${verb} ${this.alt}`;
 
+    // Before hydration, an SSR'ed image is rendered only to reserve layout space, so it stays invisible.
+    const isSSRPlaceholder = this.didSSR && !this.hasUpdated;
+    const shouldShow = isSSRPlaceholder || this.play;
+
     return html`
       <div
         class="animated-image"
@@ -110,7 +133,8 @@ export default class WaAnimatedImage extends WebAwesomeElement {
           src=${this.src}
           alt=${this.alt}
           crossorigin="anonymous"
-          aria-hidden=${this.play ? 'false' : 'true'}
+          aria-hidden=${shouldShow ? 'false' : 'true'}
+          style=${styleMap({ visibility: isSSRPlaceholder ? 'hidden' : null })}
           role="presentation"
           @load=${this.handleLoad}
           @error=${this.handleError}
@@ -133,7 +157,7 @@ export default class WaAnimatedImage extends WebAwesomeElement {
                     library="system"
                     variant="solid"
                     class="default"
-                    style="margin-inline-start: 3px;"
+                    style=${styleMap({ 'margin-inline-start': '3px' })}
                   ></wa-icon>
                 </slot>
                 <slot name="pause-icon">

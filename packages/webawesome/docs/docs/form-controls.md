@@ -2,6 +2,14 @@
 title: Form Controls
 description: Using Web Awesome form controls.
 layout: page-outline
+synonyms:
+  - forms
+  - form elements
+  - validation
+use-cases:
+  - form handling
+  - form data
+  - constraint validation
 ---
 
 Web Awesome form controls are form-associated custom elements, meaning they will submit with forms just like native `<form>` controls. They also support constraint validation, which is the platform's version of client-side form validation.
@@ -12,12 +20,10 @@ Client-side validation can be enabled through the browser's [Constraint Validati
 
 If you don't want to use client-side validation, you can suppress this behavior by adding `novalidate` to the surrounding `<form>` element.
 
-:::info
-If this syntax looks unfamiliar, don't worry! Most of what you're learning on this page is platform knowledge that applies to regular form controls, too.
-:::
+And if this syntax looks unfamiliar, don't worry! Most of what you're learning on this page is platform knowledge that applies to native form controls, too.
 
 :::warning
-Client-side validation can be used to improve the UX of forms, but it is not a replacement for server-side validation. **You should always validate and sanitize user input on the server!**
+Client-side validation can be used to improve the UX of forms, but it is not a replacement for server-side validation. You should always validate and sanitize user input on the server!
 :::
 
 ### Required Fields
@@ -39,7 +45,7 @@ To make a field required, use the `required` attribute. Required fields will aut
   <br />
   <wa-checkbox required>Check me before submitting</wa-checkbox>
   <br /><br />
-  <wa-button type="submit" variant="brand">Submit</wa-button>
+  <wa-button appearance="filled" type="submit" variant="neutral">Submit</wa-button>
 </form>
 
 <script type="module">
@@ -62,6 +68,30 @@ To make a field required, use the `required` attribute. Required fields will aut
 </script>
 ```
 
+#### Styling the Required Indicator
+
+The asterisk is drawn with three [design tokens](/docs/tokens/component-groups#form-controls). Override them to change the character, its color, and the space between it and the label.
+
+- [`--wa-form-control-required-content`](/docs/tokens/component-groups#token-wa-form-control-required-content) - the content appended to the label, e.g. `'*'`
+- [`--wa-form-control-required-content-color`](/docs/tokens/component-groups#token-wa-form-control-required-content-color) - the indicator's color
+- [`--wa-form-control-required-content-offset`](/docs/tokens/component-groups#token-wa-form-control-required-content-offset) - the inline space between the label and the indicator
+
+```html {.example}
+<form class="custom-required-indicator">
+  <wa-input name="name" label="Name" required></wa-input>
+</form>
+
+<style>
+  .custom-required-indicator {
+    --wa-form-control-required-content: '(required)';
+    --wa-form-control-required-content-color: var(--wa-color-danger-on-quiet);
+    --wa-form-control-required-content-offset: 0.5em;
+  }
+</style>
+```
+
+Set `--wa-form-control-required-content` to `''` to remove the indicator.
+
 ### Input Patterns
 
 To restrict a value to a specific [pattern](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/pattern), use the `pattern` attribute. This example only allows the letters A-Z, so the form will not submit if a number or symbol is entered. This only works with `<wa-input>` elements.
@@ -70,8 +100,8 @@ To restrict a value to a specific [pattern](https://developer.mozilla.org/en-US/
 <form class="input-validation-pattern">
   <wa-input name="letters" required label="Letters" pattern="[A-Za-z]+"></wa-input>
   <br />
-  <wa-button type="submit" variant="brand">Submit</wa-button>
-  <wa-button type="reset" variant="neutral">Reset</wa-button>
+  <wa-button appearance="filled" type="submit" variant="neutral">Submit</wa-button>
+  <wa-button appearance="filled" type="reset" variant="neutral">Reset</wa-button>
 </form>
 
 <script type="module">
@@ -97,8 +127,8 @@ Some input types will automatically trigger constraints, such as `email` and `ur
   <br />
   <wa-input type="url" label="URL" placeholder="https://example.com/" required></wa-input>
   <br />
-  <wa-button type="submit" variant="brand">Submit</wa-button>
-  <wa-button type="reset" variant="neutral">Reset</wa-button>
+  <wa-button appearance="filled" type="submit" variant="neutral">Submit</wa-button>
+  <wa-button appearance="filled" type="reset" variant="neutral">Reset</wa-button>
 </form>
 
 <script type="module">
@@ -122,8 +152,8 @@ To create a custom validation error, pass a non-empty string to the `setCustomVa
 <form class="input-validation-custom">
   <wa-input label="Type webawesome" required></wa-input>
   <br />
-  <wa-button type="submit" variant="brand">Submit</wa-button>
-  <wa-button type="reset" variant="neutral">Reset</wa-button>
+  <wa-button appearance="filled" type="submit" variant="neutral">Submit</wa-button>
+  <wa-button appearance="filled" type="reset" variant="neutral">Reset</wa-button>
 </form>
 
 <script type="module">

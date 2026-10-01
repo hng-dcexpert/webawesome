@@ -3,22 +3,37 @@ title: Cluster
 description: 'Use the `wa-cluster` class to arrange elements inline with even spacing, allowing items to wrap when space is limited.'
 layout: docs
 tags: layoutUtilities
+synonyms:
+  - inline group
+  - horizontal group
+  - tag group
+  - flow layout
+use-cases:
+  - button row
+  - tag list
+  - chip group
+  - inline list
+  - pill group
 ---
 
 <style>
   :is(.wa-flank, .wa-grid, .wa-stack) > [class*='wa-cluster']:has(div:empty) {
-    border: var(--wa-border-width-s) dashed var(--wa-color-neutral-border-normal);
-    border-radius: var(--wa-border-radius-l);
-    padding: var(--wa-space-s);
+    border: var(--layout-example-border);
+    border-radius: var(--layout-example-border-radius);
+    padding: var(--layout-example-padding);
   }
 
   [class*='wa-cluster'] div:empty {
-    background-color: var(--wa-color-indigo-60);
-    border-radius: var(--wa-border-radius-m);
+    background-color: var(--layout-example-element-background);
+    border-radius: var(--layout-example-element-border-radius);
     min-block-size: 4rem;
     min-inline-size: 4rem;
   }
 </style>
+
+A cluster arranges its children inline with even spacing and wraps them onto a new line whenever the container runs out of room. Reach for it whenever you have a horizontal group of items of varying widths, like tag lists, button rows, inline metadata, or breadcrumb-style trails, and want the layout to stay tidy on every screen size without writing any media queries.
+
+By default, cluster children are centered vertically. Pair `wa-cluster` with a [`wa-gap-*`](/docs/utilities/gap) class to change the spacing and a [`wa-align-items-*`](/docs/utilities/align-items) class to change how items align on the cross axis.
 
 ```html {.example}
 <div class="wa-cluster">
@@ -73,24 +88,18 @@ Clusters are great for inline lists and aligning items of varying sizes.
       <wa-icon name="dollar" style="color: var(--wa-color-green-60);"></wa-icon>
     </div>
     <span class="wa-caption-s">&bull;</span>
-    <wa-tag size="small">Comfort Food</wa-tag>
-    <wa-tag size="small">Gastropub</wa-tag>
-    <wa-tag size="small">Cocktail Bar</wa-tag>
-    <wa-tag size="small">Vegetarian</wa-tag>
-    <wa-tag size="small">Gluten Free</wa-tag>
+    <wa-tag size="s">Comfort Food</wa-tag>
+    <wa-tag size="s">Gastropub</wa-tag>
+    <wa-tag size="s">Cocktail Bar</wa-tag>
+    <wa-tag size="s">Vegetarian</wa-tag>
+    <wa-tag size="s">Gluten Free</wa-tag>
   </div>
 </div>
 ```
 
 ## Align Items
 
-By default, items are centered in the block direction of the `wa-cluster` container. You can add any of the following [`wa-align-items-*`](/docs/utilities/align-items) classes to an element with `wa-cluster` to specify how items are aligned in the block direction:
-
-- `wa-align-items-start`
-- `wa-align-items-end`
-- `wa-align-items-center`
-- `wa-align-items-stretch`
-- `wa-align-items-baseline`
+By default, items are centered in the block direction of the `wa-cluster` container. Add any [`wa-align-items-*`](/docs/utilities/align-items) class to change how items line up in the block direction.
 
 ```html {.example}
 <div class="wa-stack">
@@ -119,18 +128,7 @@ By default, items are centered in the block direction of the `wa-cluster` contai
 
 ## Gap
 
-By default, the gap between cluster items uses `--wa-space-m` from your theme. You can add any of the following [`wa-gap-*`](/docs/utilities/gap) classes to an element with `wa-cluster` to specify the gap between items:
-
-- `wa-gap-0`
-- `wa-gap-3xs`
-- `wa-gap-2xs`
-- `wa-gap-xs`
-- `wa-gap-s`
-- `wa-gap-m`
-- `wa-gap-l`
-- `wa-gap-xl`
-- `wa-gap-2xl`
-- `wa-gap-3xl`
+By default, the gap between cluster items uses `--wa-space-m` from your theme. Add any [`wa-gap-*`](/docs/utilities/gap) class to change the spacing between items.
 
 ```html {.example}
 <div class="wa-stack">

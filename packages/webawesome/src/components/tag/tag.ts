@@ -1,6 +1,8 @@
 import { html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { WaRemoveEvent } from '../../events/remove.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
+import { watch } from '../../internal/watch.js';
 import WebAwesomeElement from '../../internal/webawesome-element.js';
 import sizeStyles from '../../styles/component/size.styles.js';
 import variantStyles from '../../styles/component/variants.styles.js';
@@ -9,7 +11,8 @@ import '../button/button.js';
 import styles from './tag.styles.js';
 
 /**
- * @summary Tags are used as labels to organize things or to indicate a selection.
+ * @summary Tags label, categorize, or represent selections with a compact visual marker. Use them for status
+ *  indicators, filters, or removable chips.
  * @documentation https://webawesome.com/docs/components/tag
  * @status stable
  * @since 2.0
@@ -20,7 +23,7 @@ import styles from './tag.styles.js';
  *
  * @event wa-remove - Emitted when the remove button is activated.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Style the host element instead.
  * @csspart content - The tag's content.
  * @csspart remove-button - The tag's remove button, a `<wa-button>`.
  * @csspart remove-button__base - The remove button's exported `base` part.
@@ -38,7 +41,12 @@ export default class WaTag extends WebAwesomeElement {
   @property({ reflect: true }) appearance: 'accent' | 'filled' | 'outlined' | 'filled-outlined' = 'filled-outlined';
 
   /** The tag's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
 
   /** Draws a pill-style tag with rounded edges. */
   @property({ type: Boolean, reflect: true }) pill = false;
@@ -61,6 +69,7 @@ export default class WaTag extends WebAwesomeElement {
               exportparts="base:remove-button__base"
               class="remove"
               appearance="plain"
+              size=${this.size}
               @click=${this.handleRemoveClick}
               tabindex="-1"
             >

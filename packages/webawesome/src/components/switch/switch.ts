@@ -1,19 +1,22 @@
 import type { PropertyValues } from 'lit';
-import { html } from 'lit';
+import { html, isServer } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { live } from 'lit/directives/live.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { MirrorValidator } from '../../internal/validators/mirror-validator.js';
 import { watch } from '../../internal/watch.js';
 import { WebAwesomeFormAssociatedElement } from '../../internal/webawesome-form-associated-element.js';
 import formControlStyles from '../../styles/component/form-control.styles.js';
 import sizeStyles from '../../styles/component/size.styles.js';
+import { LocalizeController } from '../../utilities/localize.js';
 import styles from './switch.styles.js';
 
 /**
- * @summary Switches allow the user to toggle an option on or off.
+ * @summary Switches toggle a single setting on or off and apply the change immediately, without requiring a form
+ *  submission.
  * @documentation https://webawesome.com/docs/components/switch
  * @status stable
  * @since 2.0
@@ -27,7 +30,8 @@ import styles from './switch.styles.js';
  * @event focus - Emitted when the control gains focus.
  * @event wa-invalid - Emitted when the form control has been checked for validity and its constraints aren't satisfied.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `switch` part instead.
+ * @csspart switch - The component's outer wrapper.
  * @csspart control - The control that houses the switch's thumb.
  * @csspart thumb - The switch's thumb.
  * @csspart label - The switch's label.
@@ -43,10 +47,12 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
   static css = [formControlStyles, sizeStyles, styles];
 
   static get validators() {
-    return [...super.validators, MirrorValidator()];
+    return isServer ? [] : [...super.validators, MirrorValidator()];
   }
 
   private readonly hasSlotController = new HasSlotController(this, 'hint');
+
+  private readonly localize = new LocalizeController(this);
 
   @query('input[type="checkbox"]') input: HTMLInputElement;
 
@@ -68,13 +74,32 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
   }
 
   /** The switch's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
 
   /** Disables the switch. */
   @property({ type: Boolean }) disabled = false;
 
-  /** Draws the switch in a checked state. */
-  @property({ type: Boolean, attribute: false }) checked: boolean = this.hasAttribute('checked');
+  _checked: boolean | null = null;
+
+  get checked() {
+    if (this.valueHasChanged) {
+      return Boolean(this._checked);
+    }
+
+    return this._checked ?? this.defaultChecked;
+  }
+
+  /** Draws the checkbox in a checked state. */
+  @property({ type: Boolean, attribute: false })
+  set checked(val: boolean) {
+    this._checked = Boolean(val);
+    this.valueHasChanged = true;
+  }
 
   /** The default value of the form control. Primarily used for resetting the form control. */
   @property({ type: Boolean, attribute: 'checked', reflect: true }) defaultChecked: boolean =
@@ -87,15 +112,10 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
   @property({ attribute: 'hint' }) hint = '';
 
   /**
-   * Used for SSR. If you slot in hint, make sure to add `with-hint` to your component to get it to properly render with SSR.
+   * Only required for SSR. Set to `true` if you're slotting in a `hint` element so the server-rendered markup
+   * includes the hint before the component hydrates on the client.
    */
   @property({ attribute: 'with-hint', type: Boolean }) withHint = false;
-
-  firstUpdated(changedProperties: PropertyValues<typeof this>) {
-    super.firstUpdated(changedProperties);
-
-    this.handleValueOrCheckedChange();
-  }
 
   private handleClick() {
     this.hasInteracted = true;
@@ -106,9 +126,10 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
   }
 
   private handleKeyDown(event: KeyboardEvent) {
+    const isRtl = this.localize.dir() === 'rtl';
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      this.checked = false;
+      this.checked = isRtl;
       this.updateComplete.then(() => {
         this.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
         this.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true }));
@@ -117,7 +138,7 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
 
     if (event.key === 'ArrowRight') {
       event.preventDefault();
-      this.checked = true;
+      this.checked = !isRtl;
 
       this.updateComplete.then(() => {
         this.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
@@ -129,32 +150,29 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
 
-    if (changedProperties.has('defaultChecked')) {
-      if (!this.hasInteracted) {
-        this.checked = this.defaultChecked;
-      }
-    }
-
-    if (changedProperties.has('value') || changedProperties.has('checked')) {
+    if (
+      changedProperties.has('value') ||
+      changedProperties.has('checked') ||
+      changedProperties.has('defaultChecked') ||
+      changedProperties.has('disabled')
+    ) {
       this.handleValueOrCheckedChange();
     }
   }
 
   handleValueOrCheckedChange() {
+    if (this.didSSR && !this.hasUpdated) {
+      this.updateComplete.then(() => {
+        this.handleValueOrCheckedChange();
+      });
+      return;
+    }
     // These @watch() commands seem to override the base element checks for changes, so we need to setValue for the form and and updateValidity()
     this.setValue(this.checked ? this.value : null, this._value);
     this.updateValidity();
   }
 
-  @watch('defaultChecked')
-  handleDefaultCheckedChange() {
-    if (!this.hasInteracted && this.checked !== this.defaultChecked) {
-      this.checked = this.defaultChecked;
-      this.handleValueOrCheckedChange();
-    }
-  }
-
-  @watch(['checked'])
+  @watch(['checked', 'defaultChecked'])
   handleStateChange() {
     if (this.hasUpdated) {
       this.input.checked = this.checked; // force a sync update
@@ -195,18 +213,23 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
   }
 
   formResetCallback(): void {
-    this.checked = this.defaultChecked;
+    this._checked = null;
     super.formResetCallback();
     this.handleValueOrCheckedChange();
   }
 
   render() {
-    const hasHintSlot = this.hasUpdated ? this.hasSlotController.test('hint') : this.withHint;
+    const hasHintSlot = this.hasSlotController.test('hint', 'withHint');
     const hasHint = this.hint ? true : !!hasHintSlot;
+
+    // We need to use the attribute for SSR, because for some reason Lit SSR always sets `.checked=${live(this.checked)}` as "true"
+    // TODO: Tell Konnor to submit a bug report + repo about this.
+    const checkedAttribute = this.didSSR && !this.hasUpdated ? this.checked : this.defaultChecked;
+    const checkedProperty = this.didSSR && !this.hasUpdated ? null : live(this.checked);
 
     return html`
       <label
-        part="base"
+        part="base switch"
         class=${classMap({
           checked: this.checked,
           disabled: this.disabled,
@@ -216,11 +239,12 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
           class="input"
           type="checkbox"
           title=${this.title /* An empty title prevents browser validation tooltips from appearing on hover */}
-          name=${this.name}
+          name=${ifDefined(this.name)}
           value=${ifDefined(this.value)}
-          .checked=${live(this.checked)}
-          .disabled=${this.disabled}
-          .required=${this.required}
+          .checked=${ifDefined(checkedProperty)}
+          ?checked=${checkedAttribute}
+          ?disabled=${this.disabled}
+          ?required=${this.required}
           role="switch"
           aria-checked=${this.checked ? 'true' : 'false'}
           aria-describedby="hint"
@@ -248,6 +272,12 @@ export default class WaSwitch extends WebAwesomeFormAssociatedElement {
     `;
   }
 }
+
+// The change-in-update warning is required for this component because the form-associated base class calls
+// updateValidity() in firstUpdated(), which triggers requestUpdate('validity') to sync the validation state after the
+// first render when the validation target is available. Additionally, HasSlotController triggers requestUpdate() on
+// initial slotchange events. See https://lit.dev/docs/tools/development/#development-build-runtime-warnings
+WaSwitch.disableWarning?.('change-in-update');
 
 declare global {
   interface HTMLElementTagNameMap {

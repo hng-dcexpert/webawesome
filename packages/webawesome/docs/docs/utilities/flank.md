@@ -3,24 +3,34 @@ title: Flank
 description: 'Use the `wa-flank` class to position two items side-by-side, with one item positioned alongside, or _flanking_, content that stretches to fill the available space.'
 layout: docs
 tags: layoutUtilities
+synonyms:
+  - media object
+  - side by side
+  - horizontal layout
+use-cases:
+  - icon and text
+  - image and content
+  - avatar with text
 ---
 
 <style>
   :is(.wa-flank, .wa-grid, .wa-stack) > [class*='wa-flank']:has(div:empty) {
-    border: var(--wa-border-width-s) dashed var(--wa-color-neutral-border-normal);
-    border-radius: var(--wa-border-radius-l);
-    padding: var(--wa-space-s);
+    border: var(--layout-example-border);
+    border-radius: var(--layout-example-border-radius);
+    padding: var(--layout-example-padding);
   }
 
   [class*='wa-flank'] div:empty {
-    background-color: var(--wa-color-indigo-60);
-    border-radius: var(--wa-border-radius-m);
+    background-color: var(--layout-example-element-background);
+    border-radius: var(--layout-example-element-border-radius);
     min-block-size: 4rem;
     min-inline-size: 4rem;
   }
 </style>
 
-When space is limited, the items wrap.
+A flank pairs two items side by side, where one item (the "flank") sits at its natural size while the other stretches to fill the remaining space. It's the right fit for any "small thing next to a larger thing" pattern: an avatar next to a name and bio, an icon beside a paragraph of text, an input followed by a submit button, or a sidebar alongside page content.
+
+By default the first child is the flank, but you can pick either end with `wa-flank:start` or `wa-flank:end`. When the main content gets too narrow, the two items wrap onto separate lines automatically.
 
 ```html {.example}
 <div class="wa-flank">
@@ -38,7 +48,7 @@ Flanks work especially well for asides, inputs with adjacent buttons, and rich d
   <wa-input>
     <wa-icon slot="start" name="magnifying-glass"></wa-icon>
   </wa-input>
-  <wa-button>Search</wa-button>
+  <wa-button appearance="filled">Search</wa-button>
 </div>
 ```
 
@@ -103,9 +113,9 @@ By default, the first item in the `wa-flank` container will flank the other cont
 </div>
 ```
 
-## Sizing
+## Size
 
-The flank's inline size is determined by the size of its content, but you can set a target size using the `--flank-size` property. When the flank wraps, it stretches to fill the inline size of the container.
+The flank's inline size is determined by the size of its content, but you can set a target size using the `--flank-size` custom property. When the flank wraps, it stretches to fill the inline size of the container.
 
 ```html {.example}
 <div class="wa-stack">
@@ -120,7 +130,7 @@ The flank's inline size is determined by the size of its content, but you can se
 </div>
 ```
 
-The main content fills the remaining inline space of the container. By default, the items wrap when the main content is less than 50% of the container. You can change the minimum size of the main content with the `--content-percentage` property.
+The main content fills the remaining inline space of the container. By default, the items wrap when the main content is less than 50% of the container. You can change the minimum size of the main content with the `--content-percentage` custom property.
 
 ```html {.example}
 <div class="wa-stack">
@@ -137,13 +147,7 @@ The main content fills the remaining inline space of the container. By default, 
 
 ## Align Items
 
-By default, items are centered in the block direction of the `wa-flank` container. You can add any of the following [`wa-align-items-*`](/docs/utilities/align-items) classes to an element with `wa-flank` to specify how items are aligned in the block direction:
-
-- `wa-align-items-start`
-- `wa-align-items-end`
-- `wa-align-items-center`
-- `wa-align-items-stretch`
-- `wa-align-items-baseline`
+By default, items are centered in the block direction of the `wa-flank` container. Add any [`wa-align-items-*`](/docs/utilities/align-items) class to change how items line up in the block direction.
 
 ```html {.example}
 <div class="wa-stack">
@@ -168,18 +172,7 @@ By default, items are centered in the block direction of the `wa-flank` containe
 
 ## Gap
 
-By default, the gap between flank items uses `--wa-space-m` from your theme. You can add any of the following [`wa-gap-*`](/docs/utilities/gap) classes to an element with `wa-flank` to specify the gap between items:
-
-- `wa-gap-0`
-- `wa-gap-3xs`
-- `wa-gap-2xs`
-- `wa-gap-xs`
-- `wa-gap-s`
-- `wa-gap-m`
-- `wa-gap-l`
-- `wa-gap-xl`
-- `wa-gap-2xl`
-- `wa-gap-3xl`
+By default, the gap between flank items uses `--wa-space-m` from your theme. Add any [`wa-gap-*`](/docs/utilities/gap) class to change the spacing between items.
 
 ```html {.example}
 <div class="wa-stack">

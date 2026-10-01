@@ -1,19 +1,63 @@
-import { aTimeout, expect, oneEvent } from '@open-wc/testing';
+import { aTimeout, expect, oneEvent, waitUntil } from '@open-wc/testing';
 import { sendKeys } from '@web/test-runner-commands';
 import { html } from 'lit';
 import sinon from 'sinon';
 import { fixtures } from '../../internal/test/fixture.js';
 import { clickOnElement, dragElement } from '../../internal/test/pointer-utilities.js';
-// import { runFormControlBaseTests } from '../../internal/test/form-control-base-tests.js';
 import { serialize } from '../../utilities/form.js';
+import type WaPopover from '../popover/popover.js';
 import type WaColorPicker from './color-picker.js';
 
 describe('<wa-color-picker>', () => {
-  // runFormControlBaseTests('wa-color-picker');
-
   for (const fixture of fixtures) {
     describe(`with "${fixture.type}" rendering`, () => {
-      describe('when the value changes', () => {
+      describe('properties', () => {
+        it('should display a color when an initial value is provided', async () => {
+          const el = await fixture<WaColorPicker>(html` <wa-color-picker value="#000"></wa-color-picker> `);
+          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]');
+          expect(trigger?.style.color).to.equal('rgb(0, 0, 0)');
+        });
+
+        it('should ignore alpha in the initial value when opacity is not enabled', async () => {
+          const el = await fixture<WaColorPicker>(html` <wa-color-picker value="#ff000080"></wa-color-picker> `);
+          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]');
+          expect(el.value).to.equal('#ff0000');
+          expect(trigger?.style.color).to.equal('rgb(255, 0, 0)');
+        });
+
+        it('should show opacity slider when opacity is enabled', async () => {
+          const el = await fixture<WaColorPicker>(html` <wa-color-picker opacity></wa-color-picker> `);
+          const opacitySlider = el.shadowRoot!.querySelector('[part*="opacity-slider"]')!;
+          expect(opacitySlider).to.exist;
+        });
+
+        it('should render the correct swatches when passing a string of color values', async () => {
+          const el = await fixture<WaColorPicker>(html`
+            <wa-color-picker swatches="red; #008000; rgb(0,0,255);"></wa-color-picker>
+          `);
+          const swatches = [...el.shadowRoot!.querySelectorAll('[part~="swatch"] > div')];
+
+          expect(swatches.length).to.equal(3);
+          expect(getComputedStyle(swatches[0]).backgroundColor).to.equal('rgb(255, 0, 0)');
+          expect(getComputedStyle(swatches[1]).backgroundColor).to.equal('rgb(0, 128, 0)');
+          expect(getComputedStyle(swatches[2]).backgroundColor).to.equal('rgb(0, 0, 255)');
+        });
+
+        it('should render the correct swatches when passing an array of color values', async () => {
+          const el = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
+          el.swatches = ['red', '#008000', 'rgb(0,0,255)'];
+          await el.updateComplete;
+
+          const swatches = [...el.shadowRoot!.querySelectorAll('[part~="swatch"] > div')];
+
+          expect(swatches.length).to.equal(3);
+          expect(getComputedStyle(swatches[0]).backgroundColor).to.equal('rgb(255, 0, 0)');
+          expect(getComputedStyle(swatches[1]).backgroundColor).to.equal('rgb(0, 128, 0)');
+          expect(getComputedStyle(swatches[2]).backgroundColor).to.equal('rgb(0, 0, 255)');
+        });
+      });
+
+      describe('events', () => {
         it('should not emit change or input when the value is changed programmatically', async () => {
           const el = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
           const color = 'rgb(255, 204, 0)';
@@ -51,38 +95,6 @@ describe('<wa-color-picker>', () => {
 
           expect(changeHandler).to.have.been.calledOnce;
           expect(inputHandler).to.have.been.calledTwice;
-        });
-
-        it.skip('should emit change and input when the hue slider is moved', async () => {
-          const el = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
-          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
-          const slider = el.shadowRoot!.querySelector<HTMLElement>('[part~="hue-slider"]')!;
-          const changeHandler = sinon.spy();
-          const inputHandler = sinon.spy();
-
-          el.addEventListener('change', changeHandler);
-          el.addEventListener('input', inputHandler);
-
-          await clickOnElement(trigger); // open the dropdown
-          await aTimeout(200); // wait for the dropdown to open
-
-          // Simulate a drag event. "change" should not fire until we stop dragging.
-          await dragElement(slider, 20, 0, {
-            afterMouseDown: () => {
-              expect(changeHandler).to.have.not.been.called;
-              expect(inputHandler).to.have.been.calledOnce;
-            },
-            afterMouseMove: () => {
-              // It's not twice because you can't change the hue of white!
-              expect(inputHandler).to.have.been.calledOnce;
-            },
-          });
-
-          await el.updateComplete;
-
-          expect(changeHandler).to.have.been.calledOnce;
-          // It's not twice because you can't change the hue of white!
-          expect(inputHandler).to.have.been.calledOnce;
         });
 
         it('should emit change and input when the opacity slider is moved', async () => {
@@ -135,31 +147,6 @@ describe('<wa-color-picker>', () => {
           expect(inputHandler).to.have.been.calledOnce;
         });
 
-        it('should render the correct swatches when passing a string of color values', async () => {
-          const el = await fixture<WaColorPicker>(html`
-            <wa-color-picker swatches="red; #008000; rgb(0,0,255);"></wa-color-picker>
-          `);
-          const swatches = [...el.shadowRoot!.querySelectorAll('[part~="swatch"] > div')];
-
-          expect(swatches.length).to.equal(3);
-          expect(getComputedStyle(swatches[0]).backgroundColor).to.equal('rgb(255, 0, 0)');
-          expect(getComputedStyle(swatches[1]).backgroundColor).to.equal('rgb(0, 128, 0)');
-          expect(getComputedStyle(swatches[2]).backgroundColor).to.equal('rgb(0, 0, 255)');
-        });
-
-        it('should render the correct swatches when passing an array of color values', async () => {
-          const el = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
-          el.swatches = ['red', '#008000', 'rgb(0,0,255)'];
-          await el.updateComplete;
-
-          const swatches = [...el.shadowRoot!.querySelectorAll('[part~="swatch"] > div')];
-
-          expect(swatches.length).to.equal(3);
-          expect(getComputedStyle(swatches[0]).backgroundColor).to.equal('rgb(255, 0, 0)');
-          expect(getComputedStyle(swatches[1]).backgroundColor).to.equal('rgb(0, 128, 0)');
-          expect(getComputedStyle(swatches[2]).backgroundColor).to.equal('rgb(0, 0, 255)');
-        });
-
         it('should emit change and input when clicking on a swatch', async () => {
           const el = await fixture<WaColorPicker>(html`
             <wa-color-picker swatches="red; green; blue;"></wa-color-picker>
@@ -181,7 +168,70 @@ describe('<wa-color-picker>', () => {
           expect(inputHandler).to.have.been.calledOnce;
         });
 
-        it('should emit change and input when selecting a color with the keyboard', async () => {
+        it('should emit change and input when selecting a swatch with the keyboard', async () => {
+          const el = await fixture<WaColorPicker>(html`
+            <wa-color-picker swatches="red; green; blue;"></wa-color-picker>
+          `);
+          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
+          const swatch = el.shadowRoot!.querySelector<HTMLElement>('[part~="swatch"]')!;
+          const changeHandler = sinon.spy();
+          const inputHandler = sinon.spy();
+
+          el.addEventListener('change', changeHandler);
+          el.addEventListener('input', inputHandler);
+
+          await clickOnElement(trigger); // open the dropdown
+          await aTimeout(200); // wait for the dropdown to open
+          swatch.focus();
+          await sendKeys({ press: 'Enter' });
+          await el.updateComplete;
+
+          expect(el.value).to.equal('#ff0000');
+          expect(changeHandler).to.have.been.calledOnce;
+          expect(inputHandler).to.have.been.calledOnce;
+        });
+
+        it('should set a fully transparent value when selecting a transparent swatch with opacity enabled', async () => {
+          const el = await fixture<WaColorPicker>(html`
+            <wa-color-picker opacity swatches="transparent;"></wa-color-picker>
+          `);
+          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
+
+          await clickOnElement(trigger); // open the dropdown
+          await aTimeout(200); // wait for the dropdown to open
+          const swatch = el.shadowRoot!.querySelector<HTMLElement>('[part~="swatch"]')!;
+          await clickOnElement(swatch); // click on the swatch
+          await el.updateComplete;
+
+          expect(el.value).to.equal('#00000000');
+        });
+
+        it('should render the correct format when selecting a swatch of a different format', async () => {
+          const el = await fixture<WaColorPicker>(html` <wa-color-picker format="rgb"></wa-color-picker> `);
+          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
+          const changeHandler = sinon.spy();
+          const inputHandler = sinon.spy();
+
+          el.addEventListener('change', changeHandler);
+          el.addEventListener('input', inputHandler);
+
+          el.swatches = ['#fff'];
+          await el.updateComplete;
+          const swatch = el.shadowRoot!.querySelector<HTMLElement>('[part~="swatch"]')!;
+
+          await clickOnElement(trigger); // open the dropdown
+          await aTimeout(200); // wait for the dropdown to open
+          await clickOnElement(swatch); // click on the swatch
+          await el.updateComplete;
+
+          expect(el.value).to.equal('rgb(255, 255, 255)');
+          expect(changeHandler).to.have.been.calledOnce;
+          expect(inputHandler).to.have.been.calledOnce;
+        });
+      });
+
+      describe('keyboard navigation', () => {
+        it('should emit change and input when selecting a color with the keyboard on the grid handle', async () => {
           const el = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
           const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
           const gridHandle = el.shadowRoot!.querySelector<HTMLElement>('[part~="grid-handle"]')!;
@@ -195,26 +245,6 @@ describe('<wa-color-picker>', () => {
           await aTimeout(200); // wait for the dropdown to open
           gridHandle.focus();
           await sendKeys({ press: 'ArrowRight' }); // move the grid handle
-          await el.updateComplete;
-
-          expect(changeHandler).to.have.been.calledOnce;
-          expect(inputHandler).to.have.been.calledOnce;
-        });
-
-        it('should emit change and input when selecting a color with the keyboard', async () => {
-          const el = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
-          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
-          const handle = el.shadowRoot!.querySelector<HTMLElement>('[part~="grid-handle"]')!;
-          const changeHandler = sinon.spy();
-          const inputHandler = sinon.spy();
-
-          el.addEventListener('change', changeHandler);
-          el.addEventListener('input', inputHandler);
-
-          await clickOnElement(trigger); // open the dropdown
-          await aTimeout(200); // wait for the dropdown to open
-          handle.focus();
-          await sendKeys({ press: 'ArrowRight' }); // move the handle
           await el.updateComplete;
 
           expect(changeHandler).to.have.been.calledOnce;
@@ -305,105 +335,58 @@ describe('<wa-color-picker>', () => {
           expect(changeHandler).to.have.been.calledOnce;
           expect(inputHandler).to.have.been.calledOnce;
         });
+      });
 
-        it('should render the correct format when selecting a swatch of a different format', async () => {
-          const el = await fixture<WaColorPicker>(html` <wa-color-picker format="rgb"></wa-color-picker> `);
-          const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
-          const changeHandler = sinon.spy();
-          const inputHandler = sinon.spy();
+      describe('focus and blur', () => {
+        it('should focus and blur when calling focus() and blur() and rendered as a dropdown', async () => {
+          const colorPicker = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
+          const focusHandler = sinon.spy();
+          const blurHandler = sinon.spy();
 
-          el.addEventListener('change', changeHandler);
-          el.addEventListener('input', inputHandler);
+          colorPicker.addEventListener('focus', focusHandler);
+          colorPicker.addEventListener('blur', blurHandler);
 
-          el.swatches = ['#fff'];
-          await el.updateComplete;
-          const swatch = el.shadowRoot!.querySelector<HTMLElement>('[part~="swatch"]')!;
+          // Focus
+          colorPicker.focus();
+          await colorPicker.updateComplete;
 
-          await clickOnElement(trigger); // open the dropdown
-          await aTimeout(200); // wait for the dropdown to open
-          await clickOnElement(swatch); // click on the swatch
-          await el.updateComplete;
+          expect(document.activeElement).to.equal(colorPicker);
+          expect(focusHandler).to.have.been.calledOnce;
 
-          expect(el.value).to.equal('rgb(255, 255, 255)');
-          expect(changeHandler).to.have.been.calledOnce;
-          expect(inputHandler).to.have.been.calledOnce;
+          // Blur
+          colorPicker.blur();
+          await colorPicker.updateComplete;
+
+          expect(document.activeElement).to.equal(document.body);
+          expect(blurHandler).to.have.been.calledOnce;
         });
       });
 
-      it('should show opacity slider when opacity is enabled', async () => {
-        const el = await fixture<WaColorPicker>(html` <wa-color-picker opacity></wa-color-picker> `);
-        const opacitySlider = el.shadowRoot!.querySelector('[part*="opacity-slider"]')!;
+      describe('form integration', () => {
+        it('should preserve alpha when initialized with a HEXA value and opacity enabled', async () => {
+          const form = await fixture<HTMLFormElement>(html`
+            <form>
+              <wa-color-picker name="a" format="hex" opacity value="#4d64d54d"></wa-color-picker>
+            </form>
+          `);
+          const colorPicker = form.querySelector<WaColorPicker>('wa-color-picker')!;
 
-        expect(opacitySlider).to.exist;
-      });
+          expect(colorPicker.value).to.equal('#4d64d54d');
+          expect(new FormData(form).get('a')).to.equal('#4d64d54d');
+        });
 
-      it('should display a color when an initial value is provided', async () => {
-        const el = await fixture<WaColorPicker>(html` <wa-color-picker value="#000"></wa-color-picker> `);
-        const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]');
+        it('should preserve alpha and letter case when initialized with an uppercase HEXA value', async () => {
+          const form = await fixture<HTMLFormElement>(html`
+            <form>
+              <wa-color-picker name="a" format="hex" opacity uppercase value="#4d64d54d"></wa-color-picker>
+            </form>
+          `);
+          const colorPicker = form.querySelector<WaColorPicker>('wa-color-picker')!;
 
-        expect(trigger?.style.color).to.equal('rgb(0, 0, 0)');
-      });
+          expect(colorPicker.value).to.equal('#4D64D54D');
+          expect(new FormData(form).get('a')).to.equal('#4D64D54D');
+        });
 
-      // @TODO: Figure out whats up here. [Konnor]
-      it.skip('should display a color with opacity when an initial value with opacity is provided', async () => {
-        const el = await fixture<WaColorPicker>(html` <wa-color-picker opacity value="#ff000050"></wa-color-picker> `);
-        const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
-        const previewButton = el.shadowRoot!.querySelector<HTMLButtonElement>('[part~="preview"]')!;
-        const previewColor = getComputedStyle(previewButton).getPropertyValue('--preview-color');
-
-        expect(trigger.style.color).to.equal('rgba(255, 0, 0, 0.314)');
-        expect(previewColor).to.equal('#ff000050');
-      });
-
-      it.skip('should emit focus when rendered as a dropdown and focused', async () => {
-        const el = await fixture<WaColorPicker>(html`
-          <div>
-            <wa-color-picker></wa-color-picker>
-            <button type="button">Click me</button>
-          </div>
-        `);
-        const colorPicker = el.querySelector<WaColorPicker>('wa-color-picker')!;
-        const trigger = colorPicker.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
-        const button = el.querySelector('button')!;
-        const focusHandler = sinon.spy();
-        const blurHandler = sinon.spy();
-
-        colorPicker.addEventListener('focus', focusHandler);
-        colorPicker.addEventListener('blur', blurHandler);
-
-        await clickOnElement(trigger);
-        await colorPicker.updateComplete;
-        expect(focusHandler).to.have.been.calledOnce;
-
-        await clickOnElement(button);
-        await colorPicker.updateComplete;
-        expect(blurHandler).to.have.been.calledOnce;
-      });
-
-      it('should focus and blur when calling focus() and blur() and rendered as a dropdown', async () => {
-        const colorPicker = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
-        const focusHandler = sinon.spy();
-        const blurHandler = sinon.spy();
-
-        colorPicker.addEventListener('focus', focusHandler);
-        colorPicker.addEventListener('blur', blurHandler);
-
-        // Focus
-        colorPicker.focus();
-        await colorPicker.updateComplete;
-
-        expect(document.activeElement).to.equal(colorPicker);
-        expect(focusHandler).to.have.been.calledOnce;
-
-        // Blur
-        colorPicker.blur();
-        await colorPicker.updateComplete;
-
-        expect(document.activeElement).to.equal(document.body);
-        expect(blurHandler).to.have.been.calledOnce;
-      });
-
-      describe('when submitting a form', () => {
         it('should serialize its name and value with FormData', async () => {
           const form = await fixture<HTMLFormElement>(html`
             <form>
@@ -439,9 +422,7 @@ describe('<wa-color-picker>', () => {
 
           expect(formData.get('a')).to.equal('#ffcc00');
         });
-      });
 
-      describe('when resetting a form', () => {
         it('should reset the element to its initial value', async () => {
           const form = await fixture<HTMLFormElement>(html`
             <form>
@@ -471,7 +452,7 @@ describe('<wa-color-picker>', () => {
         });
       });
 
-      describe('when using constraint validation', () => {
+      describe('CSS parts and states', () => {
         it('should be valid by default', async () => {
           const el = await fixture<WaColorPicker>(html` <wa-color-picker></wa-color-picker> `);
           expect(el.checkValidity()).to.be.true;
@@ -536,4 +517,39 @@ describe('<wa-color-picker>', () => {
       });
     });
   }
+
+  describe('dismissible stack', () => {
+    it('should only close the popover when pressing Escape with an open color-picker underneath', async () => {
+      const fixture = fixtures[0];
+      const el = await fixture<HTMLDivElement>(html`
+        <div>
+          <wa-color-picker id="test-color-picker"></wa-color-picker>
+          <wa-button id="popover-anchor">Open Popover</wa-button>
+          <wa-popover id="test-popover" for="popover-anchor">
+            <div style="padding: 1rem;">Popover content</div>
+          </wa-popover>
+        </div>
+      `);
+
+      const colorPicker = el.querySelector<WaColorPicker>('#test-color-picker')!;
+      const popover = el.querySelector<WaPopover>('#test-popover')!;
+
+      // Open color picker
+      const trigger = colorPicker.shadowRoot!.querySelector<HTMLButtonElement>('[part~="trigger"]')!;
+      await clickOnElement(trigger);
+      await aTimeout(200);
+      await waitUntil(() => colorPicker.open);
+
+      // Open popover on top
+      popover.open = true;
+      await waitUntil(() => popover.open);
+      await aTimeout(200);
+
+      await sendKeys({ press: 'Escape' });
+      await aTimeout(200);
+
+      expect(popover.open).to.be.false;
+      expect(colorPicker.open).to.be.true;
+    });
+  });
 });

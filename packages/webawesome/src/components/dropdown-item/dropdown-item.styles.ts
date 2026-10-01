@@ -22,13 +22,18 @@ export default css`
     }
   }
 
+  :host(:state(submenu-open)) {
+    background-color: var(--wa-color-neutral-fill-normal);
+  }
+
   :host(:focus-visible) {
     z-index: 1;
     outline: var(--wa-focus-ring);
     background-color: var(--wa-color-neutral-fill-normal);
   }
 
-  :host(:state(disabled)) {
+  :host(:state(disabled)),
+  :host([disabled]) {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -46,6 +51,7 @@ export default css`
     }
   }
 
+  :host([variant='danger']:state(submenu-open)),
   :host([variant='danger']:focus-visible) {
     background-color: var(--wa-color-danger-fill-normal);
     color: var(--wa-color-danger-on-normal);
@@ -62,6 +68,11 @@ export default css`
 
   :host(:state(has-submenu)[submenu-adjacent]) #details {
     padding-inline-end: 1.75em;
+  }
+
+  /* The link only exists to be clicked programmatically. */
+  #link {
+    display: none;
   }
 
   #check {
@@ -86,9 +97,6 @@ export default css`
   #label {
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   #details {
@@ -146,11 +154,11 @@ export default css`
     }
 
     &.show {
-      animation: submenu-show var(--show-duration, 50ms) ease;
+      animation: submenu-show var(--show-duration, var(--wa-transition-fast)) ease;
     }
 
     &.hide {
-      animation: submenu-show var(--show-duration, 50ms) ease reverse;
+      animation: submenu-show var(--show-duration, var(--wa-transition-fast)) ease reverse;
     }
 
     /* Submenu placement transform origins */

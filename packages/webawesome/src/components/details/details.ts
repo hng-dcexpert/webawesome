@@ -16,7 +16,8 @@ import '../icon/icon.js';
 import styles from './details.styles.js';
 
 /**
- * @summary Details show a brief summary and expand to show additional content.
+ * @summary Details display a brief summary and expand to reveal additional content. Use them to progressively disclose
+ *  information, group related FAQs, or hide advanced options.
  * @documentation https://webawesome.com/docs/components/details
  * @status stable
  * @since 2.0
@@ -33,16 +34,17 @@ import styles from './details.styles.js';
  * @event wa-hide - Emitted when the details closes.
  * @event wa-after-hide - Emitted after the details closes and all animations are complete.
  *
- * @csspart base - The inner `<details>` element used to render the component.
- *                 Styles you apply to the component are automatically applied to this part, so you usually don't need to deal with it unless you need to set the `display` property.
+ * @csspart base - Deprecated. Use the `details` part instead.
+ * @csspart details - The component's outer wrapper.
+ *                    Styles you apply to the component are automatically applied to this part, so you usually don't need to deal with it unless you need to set the `display` property.
  * @csspart header - The header that wraps both the summary and the expand/collapse icon.
  * @csspart summary - The container that wraps the summary.
  * @csspart icon - The container that wraps the expand/collapse icons.
  * @csspart content - The details content.
  *
  * @cssproperty --spacing - The amount of space around and between the details' content. Expects a single value.
- * @cssproperty [--show-duration=200ms] - The show duration to use when applying built-in animation classes.
- * @cssproperty [--hide-duration=200ms] - The hide duration to use when applying built-in animation classes.
+ * @cssproperty [--show-duration=var(--wa-transition-normal)] - The show duration to use when applying built-in animation classes.
+ * @cssproperty [--hide-duration=var(--wa-transition-normal)] - The hide duration to use when applying built-in animation classes.
  *
  * @cssstate animating - Applied when the details is animating expand/collapse.
  */
@@ -57,6 +59,8 @@ export default class WaDetails extends WebAwesomeElement {
   @query('summary') header: HTMLElement;
   @query('.body') body: HTMLElement;
   @query('.expand-icon-slot') expandIconSlot: HTMLSlotElement;
+
+  private animationGeneration = 0;
 
   @state() isAnimating = false;
 
@@ -86,7 +90,8 @@ export default class WaDetails extends WebAwesomeElement {
     this.detailsObserver?.disconnect();
   }
 
-  firstUpdated() {
+  firstUpdated(changedProperties: PropertyValues<typeof this>) {
+    super.firstUpdated(changedProperties);
     this.body.style.height = this.open ? 'auto' : '0';
     if (this.open) {
       this.details.open = true;
@@ -188,6 +193,9 @@ export default class WaDetails extends WebAwesomeElement {
 
   @watch('open', { waitUntilFirstUpdate: true })
   async handleOpenChange() {
+    this.animationGeneration++;
+    const generation = this.animationGeneration;
+
     if (this.open) {
       this.details.open = true;
       // Show
@@ -216,6 +224,12 @@ export default class WaDetails extends WebAwesomeElement {
           easing: 'linear',
         },
       );
+
+      // If a newer animation has started, handle the final state
+      if (this.animationGeneration !== generation) {
+        return;
+      }
+
       this.body.style.height = 'auto';
       this.isAnimating = false;
 
@@ -241,7 +255,13 @@ export default class WaDetails extends WebAwesomeElement {
         ],
         { duration, easing: 'linear' },
       );
-      this.body.style.height = 'auto';
+
+      // If a newer animation has started, handle the final state
+      if (this.animationGeneration !== generation) {
+        return;
+      }
+
+      this.body.style.height = '0';
       this.isAnimating = false;
       this.details.open = false;
       this.dispatchEvent(new WaAfterHideEvent());
@@ -272,7 +292,7 @@ export default class WaDetails extends WebAwesomeElement {
     const isRtl = !this.hasUpdated ? this.dir === 'rtl' : this.localize.dir() === 'rtl';
 
     return html`
-      <details part="base">
+      <details part="base details">
         <summary
           part="header"
           role="button"

@@ -37,7 +37,7 @@ export default function (plop) {
       },
       {
         type: 'add',
-        path: '../../src/components/{{ tagWithoutPrefix tag }}/{{ tagWithoutPrefix tag }}.css',
+        path: '../../src/components/{{ tagWithoutPrefix tag }}/{{ tagWithoutPrefix tag }}.styles.ts',
         templateFile: 'templates/component/styles.hbs',
       },
       {
@@ -49,12 +49,6 @@ export default function (plop) {
         type: 'add',
         path: '../../docs/docs/components/{{ tagWithoutPrefix tag }}.md',
         templateFile: 'templates/component/docs.hbs',
-      },
-      {
-        type: 'modify',
-        path: '../../docs/_includes/sidebar.njk',
-        pattern: /\{# PLOP_NEW_COMPONENT_PLACEHOLDER #\}/,
-        template: `<li><a href="/docs/components/{{ tagWithoutPrefix tag }}">{{ tagToTitle tag }}</a></li>\n    {# PLOP_NEW_COMPONENT_PLACEHOLDER #}`,
       },
     ],
   });

@@ -1,17 +1,35 @@
 ---
 title: Badge
-description: Badges are used to draw attention and display statuses or counts.
 layout: component
-category: Feedback & Status
+category: Feedback
+synonyms:
+  - chip
+  - label
+  - count
+  - indicator
+  - pill
+use-cases:
+  - notification count
+  - status indicator
+  - unread count
+  - new indicator
 ---
 
 ```html {.example}
-<wa-badge>Badge</wa-badge>
+<wa-badge>New</wa-badge>
+```
+
+```html {.example .anatomy-only}
+<wa-badge variant="brand">
+  <wa-icon slot="start" name="star"></wa-icon>
+  Featured
+  <wa-icon slot="end" name="arrow-right"></wa-icon>
+</wa-badge>
 ```
 
 ## Examples
 
-### Variants
+### Variant
 
 Set the `variant` attribute to change the badge's variant.
 
@@ -65,14 +83,14 @@ Use the `appearance` attribute to change the badge's visual appearance.
 Badges are sized relative to the current font size. You can set `font-size` on any badge (or an ancestor element) to change it.
 
 ```html {.example}
-<wa-badge variant="brand" style="font-size: var(--wa-font-size-xs);">Brand</wa-badge>
-<wa-badge variant="brand" style="font-size: var(--wa-font-size-s);">Brand</wa-badge>
-<wa-badge variant="brand" style="font-size: var(--wa-font-size-m);">Brand</wa-badge>
-<wa-badge variant="brand" style="font-size: var(--wa-font-size-l);">Brand</wa-badge>
-<wa-badge variant="brand" style="font-size: var(--wa-font-size-xl);">Brand</wa-badge>
+<wa-badge variant="brand" style="font-size: var(--wa-font-size-xs);">Extra Small</wa-badge>
+<wa-badge variant="brand" style="font-size: var(--wa-font-size-s);">Small</wa-badge>
+<wa-badge variant="brand" style="font-size: var(--wa-font-size-m);">Medium</wa-badge>
+<wa-badge variant="brand" style="font-size: var(--wa-font-size-l);">Large</wa-badge>
+<wa-badge variant="brand" style="font-size: var(--wa-font-size-xl);">Extra Large</wa-badge>
 ```
 
-### Pill Badges
+### Pill
 
 Use the `pill` attribute to give badges rounded edges.
 
@@ -116,22 +134,48 @@ Use the `attention` attribute to draw attention to the badge with a subtle anima
 </style>
 ```
 
+Set the `--pulse-color` custom property to color the pulse independently of the badge's variant.
+
+```html {.example}
+<wa-badge variant="neutral" attention="pulse" pill style="--pulse-color: var(--wa-color-brand-fill-loud)">1</wa-badge>
+```
+
+### Start & End Decorations
+
+Use the `start` and `end` slots to add presentational elements like `<wa-icon>` alongside the badge's label.
+
+```html {.example}
+<wa-badge>
+  <wa-icon slot="start" name="seedling"></wa-icon>
+  Start
+</wa-badge>
+<wa-badge>
+  <wa-icon slot="end" name="tree"></wa-icon>
+  End
+</wa-badge>
+<wa-badge>
+  <wa-icon slot="start" name="cow"></wa-icon>
+  <wa-icon slot="end" name="meteor"></wa-icon>
+  Both
+</wa-badge>
+```
+
 ### With Buttons
 
 One of the most common use cases for badges is attaching them to buttons. To make this easier, badges will be automatically positioned at the top-right when they're a child of a button.
 
 ```html {.example}
-<wa-button>
+<wa-button appearance="filled">
   Requests
   <wa-badge pill>30</wa-badge>
 </wa-button>
 
-<wa-button style="margin-inline-start: 1rem;">
+<wa-button appearance="filled" style="margin-inline-start: 1rem;">
   Warnings
   <wa-badge variant="warning" pill>8</wa-badge>
 </wa-button>
 
-<wa-button style="margin-inline-start: 1rem;">
+<wa-button appearance="filled" style="margin-inline-start: 1rem;">
   Errors
   <wa-badge variant="danger" pill>6</wa-badge>
 </wa-button>

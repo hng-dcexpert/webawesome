@@ -1,26 +1,26 @@
+import { QrCreator } from '@konnorr/qr-creator';
 import type { PropertyValues } from 'lit';
 import { html } from 'lit';
-import { customElement, property, query, state } from 'lit/decorators.js';
-import type _QrCreator from 'qr-creator';
-import { watch } from '../../internal/watch.js';
+import { customElement, property, query } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import WebAwesomeElement from '../../internal/webawesome-element.js';
 import styles from './qr-code.styles.js';
 
-let QrCreator: _QrCreator.default;
-
 /**
- * @summary Generates a [QR code](https://www.qrcode.com/) and renders it using the [Canvas API](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API).
+ * @summary QR codes encode a URL or other short text into a scannable image, rendered client-side using the Canvas API.
+ *  Use them to share links, contact info, or Wi-Fi credentials that visitors can scan with a phone.
  * @documentation https://webawesome.com/docs/components/qr-code
  * @status stable
  * @since 2.0
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `qr-code` part instead.
+ * @csspart qr-code - The component's outer wrapper.
  */
 @customElement('wa-qr-code')
 export default class WaQrCode extends WebAwesomeElement {
   static css = styles;
 
-  @query('canvas') canvas: HTMLElement;
+  @query('canvas') canvas: HTMLCanvasElement;
 
   /** The QR code's value. */
   @property() value = '';
@@ -31,11 +31,17 @@ export default class WaQrCode extends WebAwesomeElement {
   /** The size of the QR code, in pixels. */
   @property({ type: Number }) size = 128;
 
-  /** The fill color. This can be any valid CSS color, but not a CSS custom property. */
-  @property() fill = 'black';
+  /**
+   * The fill color. This can be any valid CSS color, but not a CSS custom property.
+   * @deprecated Use the `color` CSS property instead.
+   */
+  @property() fill = '';
 
-  /** The background color. This can be any valid CSS color or `transparent`. It cannot be a CSS custom property. */
-  @property() background = 'white';
+  /**
+   * The background color. This can be any valid CSS color or `transparent`. It cannot be a CSS custom property.
+   * @deprecated Use the `background` or `background-color` CSS property on the host element instead.
+   */
+  @property() background = '';
 
   /** The edge radius of each module. Must be between 0 and 0.5. */
   @property({ type: Number }) radius = 0;
@@ -43,61 +49,79 @@ export default class WaQrCode extends WebAwesomeElement {
   /** The level of error correction to use. [Learn more](https://www.qrcode.com/en/about/error_correction.html) */
   @property({ attribute: 'error-correction' }) errorCorrection: 'L' | 'M' | 'Q' | 'H' = 'H';
 
-  /**
-   * Whether or not the qr-code generated.
-   */
-  // @ts-expect-error Don't know why it marks it as unused.
-  @state() private generated = false;
+  @property() image: string | null = null;
+  @property({ attribute: 'image-background' }) imageBackground: string | null = null;
+  @property({ attribute: 'image-coverage', type: Number }) imageCoverage: number | null = null;
+  @property({ attribute: 'image-padding', type: Number }) imagePadding: number | null = null;
 
-  firstUpdated(changedProperties: PropertyValues<this>) {
-    super.firstUpdated(changedProperties);
+  private computedStyle: ReturnType<typeof getComputedStyle> | null = null;
 
-    if (this.hasUpdated) {
-      this.generate();
-    }
+  updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
+    this.generate();
   }
 
-  @watch(['background', 'errorCorrection', 'fill', 'radius', 'size', 'value'])
   generate() {
-    this.style.setProperty('--size', `${this.size}px`);
-
     if (!this.hasUpdated) {
       return;
     }
 
-    // We lazy load because the QR generator will cause the server to crash, but we want to reduce layout shift.
-    if (!QrCreator) {
-      import('qr-creator').then(mod => {
-        QrCreator = mod.default;
-        this.generate();
-      });
-      return;
+    this.canvas.style.maxWidth = `${this.size}px`;
+    this.canvas.style.maxHeight = `${this.size}px`;
+
+    this.computedStyle ||= getComputedStyle(this);
+    const computedStyle = this.computedStyle;
+
+    const span = this.shadowRoot?.querySelector('span');
+
+    if (span) {
+      // @ts-expect-error
+      this.spanComputedStyle ||= getComputedStyle(span);
     }
 
-    (QrCreator as unknown as typeof _QrCreator.default).render(
+    QrCreator.render(
       {
         text: this.value,
         radius: this.radius,
         ecLevel: this.errorCorrection,
-        fill: this.fill,
-        background: this.background,
+        // Use the deprecated `fill` attribute if set, otherwise use the current text color
+        fill: this.fill || computedStyle.color,
+        // Use the deprecated `background` attribute if set, otherwise use transparent (the host has the bg color now)
+        background: this.background || null,
         // We draw the canvas larger and scale its container down to avoid blurring on high-density displays
         size: this.size * 2,
+        image: this.image,
+        imageEcCover: this.imageCoverage,
+        imagePadding: this.imagePadding,
+        imageBackground: this.imageBackground || this.background,
+        // @ts-expect-error
+        cornerFill: this.spanComputedStyle?.color,
       },
       this.canvas,
     );
-
-    this.generated = true;
   }
 
   render() {
     return html`
       <canvas
-        part="base"
+        part="base qr-code"
         class="qr-code"
         role="img"
         aria-label=${this.label?.length > 0 ? this.label : this.value}
-      ></canvas>
+        style=${styleMap({
+          maxWidth: `${this.size}px`,
+          maxHeight: `${this.size}px`,
+          minWidth: `${this.size}px`,
+          minHeight: `${this.size}px`,
+        })}
+        @transitionend=${(event: TransitionEvent) => {
+          if (event.propertyName === 'color') {
+            this.generate();
+          }
+        }}
+      >
+        <span style="color: var(--corner-color);"></span>
+      </canvas>
     `;
   }
 }

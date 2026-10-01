@@ -2,7 +2,7 @@
   "name": "@webawesome/monorepo",
   "private": true,
   "description": "A forward-thinking library of web components.",
-  "version": "3.0.0",
+  "version": "3.13.0",
   "homepage": "https://webawesome.com/",
   "author": "Web Awesome",
   "license": "MIT",
@@ -13,21 +13,24 @@
   "scripts": {
     "check-updates": "npx npm-check-updates --interactive --format group",
     "start": "cd packages/webawesome && npm run start",
+    "build": "cd packages/webawesome && npm run build",
     "start:pro": "cd packages/webawesome-pro && npm run start",
-    "build": "cd packages/webawesome && npm run build"
+    "build:pro": "cd packages/webawesome-pro && npm run build"
   },
   "engines": {
     "node": ">=14.17.0"
   },
   "devDependencies": {
     "@11ty/eleventy": "3.0.0",
-    "@custom-elements-manifest/analyzer": "^0.10.4",
-    "@lit-labs/eleventy-plugin-lit": "^1.0.3",
+    "@custom-elements-manifest/analyzer": "^0.11.0",
+    "@lit-labs/eleventy-plugin-lit": "^1.0.6",
     "@lit-labs/testing": "^0.2.5",
     "@lit/react": "^1.0.8",
     "@open-wc/testing": "^3.2.0",
     "@types/mocha": "^10.0.10",
     "@types/react": "^18.2.28",
+    "@wc-toolkit/cem-inheritance": "^1.2.2",
+    "@wc-toolkit/type-parser": "^1.2.0",
     "@web/dev-server-esbuild": "^0.3.6",
     "@web/test-runner": "^0.19.0",
     "@web/test-runner-commands": "^0.9.0",
@@ -40,19 +43,19 @@
     "command-line-args": "^5.2.1",
     "comment-parser": "^1.4.1",
     "cspell": "^6.18.1",
-    "custom-element-jet-brains-integration": "^1.6.2",
-    "custom-element-vs-code-integration": "^1.4.1",
-    "custom-element-vuejs-integration": "^1.3.3",
+    "custom-element-jet-brains-integration": "^1.7.0",
+    "custom-element-svelte-integration": "^1.2.0",
+    "custom-element-vs-code-integration": "^1.5.0",
+    "custom-element-vuejs-integration": "^1.4.0",
     "del": "^7.1.0",
     "download": "^8.0.0",
-    "esbuild": "0.23.1",
+    "esbuild": "0.25.12",
     "esbuild-plugin-replace": "^1.4.0",
     "front-matter": "^4.0.2",
     "get-port": "^7.1.0",
     "globby": "^13.2.2",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.1",
-    "lunr": "^2.3.9",
     "markdown-it": "^14.1.0",
     "markdown-it-attrs": "^4.3.0",
     "markdown-it-container": "^3.0.0",
@@ -60,6 +63,7 @@
     "markdown-it-kbd": "^2.2.2",
     "markdown-it-mark": "^3.0.1",
     "marked": "^11.1.0",
+    "minisearch": "^7.2.0",
     "node-html-parser": "^6.1.13",
     "npm-check-updates": "^17.1.11",
     "ora": "^8.1.1",
@@ -74,16 +78,22 @@
     "sinon": "^16.1.0",
     "source-map": "^0.7.4",
     "tslib": "^2.8.1",
-    "typescript": "^5.7.2",
+    "typescript": "^5.9.3",
     "user-agent-data-types": "^0.4.2",
     "uuid": "^9.0.1"
   },
   "overrides": {
-    "playwright": "^1.49.1"
+    "playwright": "^1.49.1",
+    "axe-core": "^4.11.4",
+    "esbuild": "$esbuild"
   },
   "lint-staged": {
     "*.{ts,js}": [
       "prettier --write"
     ]
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "rs-module-lexer": true
   }
 }

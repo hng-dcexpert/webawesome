@@ -1,34 +1,59 @@
 ---
 title: Checkbox
-description: Checkboxes allow the user to toggle an option on or off.
 layout: component
-category: Form Controls
+category: Forms
+synonyms:
+  - check
+  - tick
+  - checkmark
+use-cases:
+  - boolean toggle
+  - multi-select option
+  - terms agreement
+  - todo item
 ---
 
 ```html {.example}
-<wa-checkbox>Checkbox</wa-checkbox>
+<wa-checkbox>I agree to the terms and conditions</wa-checkbox>
+```
+
+```html {.example .anatomy-only}
+<wa-checkbox checked hint="You can turn this off later in settings.">Remember me</wa-checkbox>
 ```
 
 :::info
-This component works with standard `<form>` elements. Please refer to the section on [form controls](/docs/form-controls) to learn more about form submission and client-side validation.
+This component works with standard `<form>` elements. See [form controls](/docs/form-controls) for form submission and client-side validation.
 :::
 
 ## Examples
 
-### Checked
+### Initial Value
 
 Use the `checked` attribute to activate the checkbox.
 
 ```html {.example}
-<wa-checkbox checked>Checked</wa-checkbox>
+<wa-checkbox checked>Remember me</wa-checkbox>
+```
+
+:::info
+<strong>`checked` sets the initial value, not the current state.</strong><br />
+Consistent with native checkboxes, it doesn't reflect later changes. To toggle the checked state with JavaScript, use the `checked` property instead. To target checked checkboxes with CSS, use the `:state(checked)` selector.
+:::
+
+### Hint
+
+Add a descriptive hint with the `hint` attribute. For hints that contain HTML, use the `hint` slot instead.
+
+```html {.example}
+<wa-checkbox hint="You can turn this off later in settings.">Subscribe to the newsletter</wa-checkbox>
 ```
 
 ### Indeterminate
 
-Use the `indeterminate` attribute to make the checkbox indeterminate.
+Use the `indeterminate` attribute to make the checkbox indeterminate. This is typically used for a "select all" control when its associated checkboxes have a mix of checked and unchecked states.
 
 ```html {.example}
-<wa-checkbox indeterminate>Indeterminate</wa-checkbox>
+<wa-checkbox indeterminate>Select all</wa-checkbox>
 ```
 
 ### Disabled
@@ -36,27 +61,21 @@ Use the `indeterminate` attribute to make the checkbox indeterminate.
 Use the `disabled` attribute to disable the checkbox.
 
 ```html {.example}
-<wa-checkbox disabled>Disabled</wa-checkbox>
+<wa-checkbox disabled>I accept marketing emails</wa-checkbox>
 ```
 
-### Sizes
+### Size
 
 Use the `size` attribute to change a checkbox's size.
 
 ```html {.example}
-<wa-checkbox size="small">Small</wa-checkbox>
-<br />
-<wa-checkbox size="medium">Medium</wa-checkbox>
-<br />
-<wa-checkbox size="large">Large</wa-checkbox>
-```
-
-### Hint
-
-Add descriptive hint to a switch with the `hint` attribute. For hints that contain HTML, use the `hint` slot instead.
-
-```html {.example}
-<wa-checkbox hint="What should the user know about the checkbox?">Label</wa-checkbox>
+<div class="wa-stack">
+  <wa-checkbox size="xs">Extra Small</wa-checkbox>
+  <wa-checkbox size="s">Small</wa-checkbox>
+  <wa-checkbox size="m">Medium</wa-checkbox>
+  <wa-checkbox size="l">Large</wa-checkbox>
+  <wa-checkbox size="xl">Extra Large</wa-checkbox>
+</div>
 ```
 
 ### Custom Validity
@@ -67,7 +86,7 @@ Use the `setCustomValidity()` method to set a custom validation message. This wi
 <form class="custom-validity">
   <wa-checkbox>Check me</wa-checkbox>
   <br />
-  <wa-button type="submit" variant="brand" style="margin-top: 1rem;">Submit</wa-button>
+  <wa-button appearance="filled" type="submit" variant="neutral" style="margin-top: 1rem;">Submit</wa-button>
 </form>
 <script>
   const form = document.querySelector('.custom-validity');

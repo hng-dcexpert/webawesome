@@ -2,6 +2,8 @@ import { css } from 'lit';
 
 export default css`
   :host {
+    --current-text-color: var(--wa-color-brand-on-loud);
+
     display: block;
     color: var(--wa-color-text-normal);
     -webkit-user-select: none;
@@ -12,8 +14,9 @@ export default css`
     align-items: center;
     font: inherit;
     padding: 0.5em 1em 0.5em 0.25em;
+    border-radius: var(--wa-border-radius-s);
     line-height: var(--wa-line-height-condensed);
-    transition: fill var(--wa-transition-normal) var(--wa-transition-easing);
+    transition: var(--wa-transition-fast) background-color var(--wa-transition-easing);
     cursor: pointer;
   }
 
@@ -22,20 +25,20 @@ export default css`
   }
 
   @media (hover: hover) {
-    :host(:not([disabled], :state(current)):is(:state(hover), :hover)) {
+    :host(:not(:state(disabled), :state(current)):is(:state(hover), :hover)) {
       background-color: var(--wa-color-neutral-fill-normal);
       color: var(--wa-color-neutral-on-normal);
     }
   }
 
   :host(:state(current)),
-  :host([disabled]:state(current)) {
-    background-color: var(--wa-color-brand-fill-loud);
-    color: var(--wa-color-brand-on-loud);
+  :host(:state(disabled):state(current)) {
+    background-color: var(--wa-form-control-activated-color);
+    color: var(--current-text-color);
     opacity: 1;
   }
 
-  :host([disabled]) {
+  :host(:state(disabled)) {
     outline: none;
     opacity: 0.5;
     cursor: not-allowed;

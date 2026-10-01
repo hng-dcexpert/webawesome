@@ -4,6 +4,7 @@ import { classMap } from 'lit/directives/class-map.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { live } from 'lit/directives/live.js';
 import { WaClearEvent } from '../../events/clear.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { submitOnEnter } from '../../internal/submit-on-enter.js';
 import { MirrorValidator } from '../../internal/validators/mirror-validator.js';
@@ -16,7 +17,8 @@ import '../icon/icon.js';
 import styles from './input.styles.js';
 
 /**
- * @summary Inputs collect data from the user.
+ * @summary Inputs collect single-line data from the user, such as text, numbers, email addresses, and passwords. They
+ *  support labels, hints, validation, and prefix or suffix slots.
  * @documentation https://webawesome.com/docs/components/input
  * @status stable
  * @since 2.0
@@ -38,9 +40,11 @@ import styles from './input.styles.js';
  * @event wa-clear - Emitted when the clear button is activated.
  * @event wa-invalid - Emitted when the form control has been checked for validity and its constraints aren't satisfied.
  *
- * @csspart label - The label
+ * @csspart form-control-label - The label.
+ * @csspart label - Deprecated. Use the `form-control-label` part instead.
  * @csspart hint - The hint's wrapper.
- * @csspart base - The wrapper being rendered as an input
+ * @csspart base - Deprecated. Use the `input-wrapper` part instead.
+ * @csspart input-wrapper - The component's outer wrapper.
  * @csspart input - The internal `<input>` control.
  * @csspart start - The container that wraps the `start` slot.
  * @csspart clear-button - The clear button.
@@ -56,7 +60,7 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
   static shadowRootOptions = { ...WebAwesomeFormAssociatedElement.shadowRootOptions, delegatesFocus: true };
 
   static get validators() {
-    return [...super.validators, MirrorValidator()];
+    return isServer ? [] : [...super.validators, MirrorValidator()];
   }
 
   assumeInteractionOn = ['blur', 'input'];
@@ -104,11 +108,30 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
     this._value = val;
   }
 
+  /**
+   * @internal
+   */
+  protected updateFormValue(value: string | FormData | File | null) {
+    if (value == null) {
+      // null is the fallback value when loading from browser "memory" (also called "state").
+      // we use an empty string to mimic browser behavior of `<input>`
+      this.setValue('', null);
+      return;
+    }
+
+    super.updateFormValue(value);
+  }
+
   /** The default value of the form control. Primarily used for resetting the form control. */
   @property({ attribute: 'value', reflect: true }) defaultValue: string | null = this.getAttribute('value') || null;
 
   /** The input's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
 
   /** The input's visual appearance. */
   @property({ reflect: true }) appearance: 'filled' | 'outlined' | 'filled-outlined' = 'outlined';
@@ -138,7 +161,7 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
   @property({ attribute: 'password-visible', type: Boolean }) passwordVisible = false;
 
   /** Hides the browser's built-in increment/decrement spin buttons for number inputs. */
-  @property({ attribute: 'without-spin-buttons', type: Boolean }) withoutSpinButtons = false;
+  @property({ attribute: 'without-spin-buttons', type: Boolean, reflect: true }) withoutSpinButtons = false;
 
   /** Makes the input a required field. */
   @property({ type: Boolean, reflect: true }) required = false;
@@ -167,8 +190,18 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
   /** Controls whether and how text input is automatically capitalized as it is entered by the user. */
   @property() autocapitalize: 'off' | 'none' | 'on' | 'sentences' | 'words' | 'characters';
 
-  /** Indicates whether the browser's autocorrect feature is on or off. */
-  @property() autocorrect: 'off' | 'on';
+  /**
+   * Indicates whether the browser's autocorrect feature is on or off. When set as an attribute, use `"off"` or `"on"`.
+   * When set as a property, use `true` or `false`.
+   */
+  @property({
+    type: Boolean,
+    converter: {
+      fromAttribute: value => (!value || value === 'off' ? false : true),
+      toAttribute: value => (value ? 'on' : 'off'),
+    },
+  })
+  declare autocorrect: boolean;
 
   /**
    * Specifies what permission the browser has to provide assistance in filling out form field values. Refer to
@@ -200,12 +233,14 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
   @property() inputmode: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
 
   /**
-   * Used for SSR. Will determine if the SSRed component will have the label slot rendered on initial paint.
+   * Only required for SSR. Set to `true` if you're slotting in a `label` element so the server-rendered markup
+   * includes the label before the component hydrates on the client.
    */
   @property({ attribute: 'with-label', type: Boolean }) withLabel = false;
 
   /**
-   * Used for SSR. Will determine if the SSRed component will have the hint slot rendered on initial paint.
+   * Only required for SSR. Set to `true` if you're slotting in a `hint` element so the server-rendered markup
+   * includes the hint before the component hydrates on the client.
    */
   @property({ attribute: 'with-hint', type: Boolean }) withHint = false;
 
@@ -246,8 +281,16 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
   updated(changedProperties: PropertyValues<this>) {
     super.updated(changedProperties);
 
-    if (changedProperties.has('value')) {
+    if (changedProperties.has('value') || changedProperties.has('defaultValue') || changedProperties.has('type')) {
+      // Types where the browser sanitizes invalid input to an empty string. Mirror that behavior so `value` stays
+      // consistent with the native input (e.g. setting `"abc"` on `type="number"` resolves to `""`).
+      const sanitizingTypes = ['number', 'date', 'time', 'datetime-local'];
+      if (this.input && sanitizingTypes.includes(this.type) && this.value && this.input.value !== this.value) {
+        this._value = this.input.value;
+      }
+
       this.customStates.set('blank', !this.value);
+      this.updateValidity();
     }
   }
 
@@ -324,29 +367,43 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
   }
 
   formResetCallback() {
-    this.value = this.defaultValue;
+    this.value = null;
+
+    if (this.input) {
+      // Fixes https://github.com/shoelace-style/webawesome/issues/1640 where resetting an input would leave the "live" vlaue in place on the input in the shadow dom. This fixed that by manually forcing the value.
+      // @ts-expect-error
+      this.input.value = this.value;
+    }
 
     super.formResetCallback();
   }
 
   render() {
-    const hasLabelSlot = this.hasUpdated ? this.hasSlotController.test('label') : this.withLabel;
-    const hasHintSlot = this.hasUpdated ? this.hasSlotController.test('hint') : this.withHint;
+    const hasLabelSlot = this.hasSlotController.test('label', 'withLabel');
+    const hasHintSlot = this.hasSlotController.test('hint', 'withHint');
     const hasLabel = this.label ? true : !!hasLabelSlot;
     const hasHint = this.hint ? true : !!hasHintSlot;
     const hasClearIcon = this.withClear && !this.disabled && !this.readonly;
     const isClearIconVisible =
       // prevents hydration mismatch errors.
-      (isServer || this.hasUpdated) &&
+      (!this.didSSR || this.hasUpdated) &&
       hasClearIcon &&
       (typeof this.value === 'number' || (this.value && this.value.length > 0));
 
     return html`
-      <label part="form-control-label label" class="label" for="input" aria-hidden=${hasLabel ? 'false' : 'true'}>
+      <label
+        part="form-control-label label"
+        class=${classMap({
+          label: true,
+          'has-label': hasLabel,
+        })}
+        for="input"
+        aria-hidden=${hasLabel ? 'false' : 'true'}
+      >
         <slot name="label">${this.label}</slot>
       </label>
 
-      <div part="base" class="text-field">
+      <div part="base input-wrapper" class="text-field">
         <slot name="start" part="start" class="start"></slot>
 
         <input
@@ -368,7 +425,7 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
           .value=${live(this.value ?? '')}
           autocapitalize=${ifDefined(this.autocapitalize)}
           autocomplete=${ifDefined(this.autocomplete)}
-          autocorrect=${ifDefined(this.autocorrect)}
+          autocorrect=${this.autocorrect ? 'on' : 'off'}
           ?autofocus=${this.autofocus}
           spellcheck=${this.spellcheck}
           pattern=${ifDefined(this.pattern)}
@@ -404,7 +461,6 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
                 type="button"
                 aria-label=${this.localize.term(this.passwordVisible ? 'hidePassword' : 'showPassword')}
                 @click=${this.handlePasswordToggle}
-                tabindex="-1"
               >
                 ${!this.passwordVisible
                   ? html`
@@ -437,6 +493,12 @@ export default class WaInput extends WebAwesomeFormAssociatedElement {
     `;
   }
 }
+
+// The change-in-update warning is required for this component because the form-associated base class calls
+// updateValidity() in firstUpdated(), which triggers requestUpdate('validity') to sync the validation state after the
+// first render when the validation target is available. Additionally, HasSlotController triggers requestUpdate() on
+// initial slotchange events. See https://lit.dev/docs/tools/development/#development-build-runtime-warnings
+WaInput.disableWarning?.('change-in-update');
 
 declare global {
   interface HTMLElementTagNameMap {

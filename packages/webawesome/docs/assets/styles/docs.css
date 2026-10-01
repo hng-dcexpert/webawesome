@@ -6,10 +6,39 @@
 @import 'cera-typeface.css';
 @import 'theme-icons.css';
 @import 'utils.css';
+@import 'anatomy.css';
 
 :root {
-  --wa-brand-orange: #f36944;
-  --wa-brand-grey: #30323b;
+  /* layout-based example style aspects */
+  --layout-example-border: var(--wa-border-width-s) dashed var(--wa-color-neutral-border-normal);
+  --layout-example-border-radius: var(--wa-border-radius-l);
+  --layout-example-padding: var(--wa-space-s);
+  --layout-example-element-background: var(--wa-color-indigo-60);
+  --layout-example-element-color: var(--wa-color-indigo-05);
+  --layout-example-element-border-radius: var(--wa-border-radius-m);
+}
+
+/* "Browse\ ___" / "Back to ___" link with an arrow that nudges on hover */
+.browse-all-link wa-icon,
+.back-link wa-icon {
+  vertical-align: -0.1em;
+  transition: transform var(--wa-transition-normal) var(--wa-transition-easing);
+}
+
+.browse-all-link wa-icon {
+  margin-inline-start: 0.25em;
+}
+
+.back-link wa-icon {
+  margin-inline-end: 0.25em;
+}
+
+.browse-all-link:hover wa-icon {
+  transform: translateX(0.25em);
+}
+
+.back-link:hover wa-icon {
+  transform: translateX(-0.25em);
 }
 
 .wa-dark .only-light,
@@ -27,245 +56,13 @@ body.theme-transitioning {
   transition: opacity 200ms ease-out;
 }
 
-/* banner */
-wa-page > [slot='banner'] {
-  padding: var(--wa-space-0);
-
-  .banner-content {
-    /* match docs header padding-inline by default */
-    padding-inline: var(--wa-space-xl);
-    padding-block: var(--wa-space-m);
-  }
-
-  &.banner-wa-launch {
-    /* custom brand colors carried over from theme-site for the banner */
-    --wa-color-brand-95: #fef0ec;
-    --wa-color-brand-90: #fce0d8;
-    --wa-color-brand-80: #f8bcac;
-    --wa-color-brand-70: #fa9378;
-    --wa-color-brand-60: #f46a45;
-    --wa-color-brand-50: #cb4b27;
-    --wa-color-brand-40: #9d371a;
-    --wa-color-brand-30: #7c2a13;
-    --wa-color-brand-20: #5d1d0b;
-    --wa-color-brand-10: #3b0f05;
-    --wa-color-brand-05: #270802;
-    --wa-color-brand: var(--wa-color-brand-60);
-    --wa-color-brand-on: var(--wa-color-brand-10);
-
-    .banner-icon {
-      color: var(--wa-color-brand-fill-loud);
-      font-size: var(--wa-font-size-xl);
-    }
-
-    .appearance-underlined.variant-drawn {
-      --underline-color: var(--wa-color-brand);
-    }
-  }
-}
-
-/* Site-Wide Dialog */
-#dialog-site {
-  /* custom brand colors carrried over from theme-site for the banner */
-  --wa-color-brand-95: #fef0ec;
-  --wa-color-brand-90: #fce0d8;
-  --wa-color-brand-80: #f8bcac;
-  --wa-color-brand-70: #fa9378;
-  --wa-color-brand-60: #f46a45;
-  --wa-color-brand-50: #cb4b27;
-  --wa-color-brand-40: #9d371a;
-  --wa-color-brand-30: #7c2a13;
-  --wa-color-brand-20: #5d1d0b;
-  --wa-color-brand-10: #3b0f05;
-  --wa-color-brand-05: #270802;
-  --wa-color-brand: var(--wa-color-brand-60);
-  --wa-color-brand-on: var(--wa-color-brand-10);
-}
-
 /* Header */
-wa-page::part(header) {
-  background-color: var(--wa-color-surface-default);
-  border-bottom: var(--wa-border-style) var(--wa-panel-border-width) var(--wa-color-surface-border);
-}
-
 wa-page::part(body) {
-  padding-top: 0px;
+  padding-block-start: 0;
 }
 
 wa-page::part(header-actions) {
   align-self: center;
-}
-
-wa-page > header {
-  padding-inline: var(--wa-space-xl);
-
-  a[href='/'] {
-    color: var(--wa-color-text-normal);
-    line-height: 1;
-  }
-
-  .brand-logo {
-    color: var(--wa-color-text-normal);
-    line-height: 1;
-  }
-
-  .brand-logo svg {
-    width: auto;
-    height: 1.75rem;
-  }
-
-  wa-button[data-toggle-nav] {
-    --text-color: currentColor;
-    font-size: 1rem;
-    margin-inline-start: -0.875rem;
-    margin-inline-end: 0;
-
-    &::part(base) {
-      padding: 0;
-      padding-inline: 0.875rem;
-    }
-  }
-}
-
-#sidebar,
-#outline {
-  h2 {
-    font-size: var(--wa-font-size-s);
-    margin: 0;
-  }
-
-  h2:not(:first-child) {
-    margin-block-start: var(--wa-space-xs);
-  }
-
-  wa-details {
-    --spacing: 0;
-
-    &::part(header) {
-      padding: 0;
-      padding-block-start: var(--wa-space-xs);
-    }
-
-    &::part(content) {
-      padding-block-start: var(--wa-space-m);
-    }
-
-    &::part(base) {
-      border: none;
-      background: none;
-      padding: 0;
-    }
-  }
-
-  ul {
-    border-inline-start: var(--wa-border-width-s) solid var(--wa-color-surface-border);
-    font-size: var(--wa-font-size-s);
-    line-height: var(--wa-line-height-condensed);
-    padding-inline-start: var(--wa-space-m);
-    margin: 0;
-  }
-
-  ul ul {
-    margin-block-start: var(--wa-space-m);
-  }
-
-  ul:empty {
-    display: none;
-  }
-
-  li {
-    list-style: none;
-    margin: 0;
-
-    + li {
-      margin-block-start: var(--wa-space-m);
-    }
-  }
-
-  li a {
-    color: var(--wa-color-text-normal);
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
-  li wa-badge::part(base) {
-    font-size: var(--wa-font-size-2xs);
-    font-weight: var(--wa-font-weight-bold);
-  }
-
-  li wa-icon {
-    color: var(--wa-color-text-quiet);
-  }
-}
-
-#outline-standard h2 {
-  margin-block-end: var(--wa-space-m);
-}
-
-#sidebar {
-  h2 {
-    color: var(--wa-color-text-quiet);
-
-    a {
-      color: var(--wa-color-text-normal);
-      text-decoration: none;
-
-      wa-icon {
-        font-size: var(--wa-font-size-s);
-        font-weight: var(--wa-font-weight-action);
-      }
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  }
-
-  wa-button.delete {
-    margin-inline-start: var(--wa-space-xs);
-
-    &:hover wa-icon {
-      color: var(--wa-color-danger-on-quiet);
-    }
-
-    &:not(li:hover > *, :focus) {
-      opacity: 0;
-    }
-  }
-
-  li wa-badge {
-    /* adding 1 scale below --wa-font-size-2xs to handle badge proportions in sidebar nav */
-    --font-size-3xs: round(calc(var(--wa-font-size-2xs) / 1.125), 1px); /* 10px */
-    font-size: var(--font-size-3xs);
-  }
-
-  wa-details {
-    --show-duration: 0;
-    --hide-duration: 0;
-  }
-
-  .the-socials {
-    /* nudge those linkies left */
-    margin-inline-start: calc(var(--wa-space-xs) * -1);
-
-    a[target='_blank'] {
-      color: var(--wa-color-text-quiet);
-      padding-inline: var(--wa-space-xs);
-
-      &:hover {
-        color: var(--wa-color-text-normal);
-      }
-    }
-  }
-
-  #version-icon-info {
-    --secondary-opacity: 1;
-    --secondary-color: var(--wa-brand-orange);
-    padding-inline: var(--wa-space-xs);
-  }
 }
 
 wa-button.delete {
@@ -279,151 +76,236 @@ wa-button.delete {
   }
 }
 
-[slot='navigation-header'] {
-  wa-select::part(listbox) {
-    font-weight: var(--wa-font-weight-normal);
-  }
-}
-
-/* planned sidebar item */
-.is-planned {
-  color: var(--wa-color-text-quiet);
-}
-
-#sidebar-close-button {
-  display: none;
-}
-
-@media screen and (max-width: 768px) {
-  #sidebar-close-button {
-    display: inline-block;
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-  }
-}
-
-#sidebar nav {
-  padding-bottom: 1rem;
-}
-
-wa-page::part(drawer__dialog),
-wa-page::part(menu) {
-  overflow: clip;
-}
-
-/* smaller viewports-based navigation */
-wa-page > [slot='navigation-header'] {
-  padding: 0;
-
-  .brand-logo svg {
-    height: 1.25rem;
-  }
-
-  /* resetting font-weight of dropdown items in .title */
-  wa-dropdown {
-    font-weight: var(--wa-font-weight-normal);
-  }
-}
-
-wa-page[view='mobile'] :is([slot='navigation-header'], [slot='navigation']) {
-  padding: 0;
-
-  & wa-details::part(icon) {
-    padding-inline: var(--wa-space-xs); /* aligns details icons with drawer close icon */
-  }
-}
-
-/* Main content */
+/* Main padding tiers as chrome unfolds: drawer → sidebar in column →
+ * sidebar plus outline aside. Inline padding follows --content-padding-inline
+ * so main and the chrome bands tighten together on mobile. */
 wa-page > main {
-  max-width: var(--content-width-s);
-  padding: var(--wa-space-xl);
+  padding-block: var(--wa-space-xl);
+  padding-inline: var(--content-padding-inline);
   margin-inline: auto;
 }
 
-h1.title {
-  wa-badge {
-    vertical-align: middle;
-    font-size: 1.5rem;
+wa-page:not([view='mobile']) > main {
+  padding-inline: var(--wa-space-4xl);
+}
+
+@media screen and (min-width: 75rem) {
+  wa-page > main {
+    padding-block: var(--wa-space-3xl);
   }
 }
 
+/* Reserve aside-column space on prose-no-outline pages so main keeps the
+ * same width as outline-bearing prose pages. Gated to viewports where the
+ * aside actually shows (outline.css hides it below 1200px). Pages can
+ * override --aside-width locally to span full width. */
+@media screen and (min-width: 75rem) {
+  .has-prose-content:not(.has-outline) wa-page {
+    --aside-width: calc(240px + 2 * var(--content-padding-inline));
+  }
+}
+
+:is(.layout-docs, .layout-component, .layout-page, .layout-page-outline, .layout-pattern) .page-footer {
+  padding: var(--wa-space-xl);
+  border-block-start: var(--wa-border-style) var(--wa-panel-border-width) var(--wa-color-surface-border);
+  margin-block-start: var(--wa-space-2xl);
+}
+
+/* Docs footer stays compact at every viewport. Site/app surfaces use the
+ * larger --wa-font-size-s default from site.css and only drop to xs in
+ * wa-page's mobile view (see site.css's @layer wa-site). */
+:is(.layout-docs, .layout-component, .layout-page, .layout-page-outline, .layout-pattern) .page-footer-content {
+  font-size: var(--wa-font-size-xs);
+}
+
+/* Docs content renders on wa-prose's own rhythm — the docs are a live demo of it;
+   deliberate exceptions live in #content below. The line-length override must land on
+   .wa-prose itself, since an element's own declaration beats an inherited one. */
+#content > .wa-prose {
+  margin-inline: auto;
+  --wa-prose-line-length: round(up, 110ch, 1px);
+}
+
+#content {
+  /* Extend wa-prose's major-blocks treatment to `.code-example` live demos
+     (wa-prose covers `<details>` natively). */
+  .code-example:has(+ *) {
+    margin-block-end: var(--wa-prose-rhythm-xl);
+  }
+  :not(h1, h2, h3, h4, h5, h6) + .code-example {
+    margin-block-start: var(--wa-prose-rhythm-xl);
+  }
+  :is(h1, h2, h3, h4, h5, h6) + .code-example {
+    margin-block-start: var(--wa-prose-rhythm-m);
+  }
+
+  /* The anchor-heading transformer injects a <wa-tooltip> between stacked headings,
+     breaking the sibling adjacency prose.css tightens on — bridge it through the tooltip. */
+  .anchor-heading:has(+ wa-tooltip + .anchor-heading) {
+    margin-block-end: 0;
+  }
+  .anchor-heading + wa-tooltip + .anchor-heading {
+    margin-block-start: var(--wa-prose-rhythm-m);
+  }
+
+  /* Treat the page title + its date line as one header unit. */
+  h1.title:has(+ p > wa-format-date) {
+    margin-block-end: var(--wa-space-s);
+  }
+
+  /* Treat h2 + `<small><time>` as one header unit (changelog releases), bridging the injected tooltip. */
+  h2:has(+ wa-tooltip + p > small > time) {
+    margin-block-end: var(--wa-space-3xs);
+  }
+  h2 + wa-tooltip + p:has(> small > time) {
+    margin-block-start: 0;
+    margin-block-end: var(--wa-space-l);
+    color: var(--wa-color-text-quiet);
+  }
+
+  /* Subordinate prerelease version headings inside `<details data-no-outline>`
+     so they read as historical, not peer to current releases. */
+  details[data-no-outline] h2 {
+    font-size: var(--wa-font-size-l);
+    margin-block-start: var(--wa-space-l);
+  }
+
+  /* Improve repetitive code elements in tables by making them less distracting and not wrapping too soon */
+  table code,
+  .dependency-list code {
+    background-color: transparent;
+    white-space: nowrap;
+  }
+}
+
+/* Policy pages are dense numbered clauses; give the items room to separate and let
+   the markers recede so the clause text leads. */
+.page-policy #content {
+  :is(ol, ul) li:not(:last-child) {
+    margin-block-end: var(--wa-space-m);
+  }
+
+  ol li {
+    padding-inline-start: var(--wa-space-xs);
+  }
+
+  ol li::marker {
+    color: var(--wa-color-text-quiet);
+  }
+}
+
+.component-ref {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--wa-color-text-link);
+    text-decoration: var(--wa-link-decoration-hover);
+  }
+}
+
+/* GitHub refs (`[issue:N]`/`[pr:N]`/`[discuss:N]`) rewritten by replaceTextPlugin. */
+.ref-link {
+  margin-inline-start: var(--wa-space-3xs);
+  text-decoration: none;
+  color: inherit;
+
+  & wa-badge {
+    font-size: var(--wa-font-size-2xs);
+  }
+}
+
+/* Changelog category groups. Icon bullets injected by _transformers/changelog-list-icons.js. */
+.changelog-group {
+  & + .changelog-group {
+    margin-block-start: var(--wa-space-l);
+    padding-block-start: var(--wa-space-l);
+    border-block-start: var(--wa-border-width-s) solid var(--wa-color-surface-border);
+  }
+
+  & > ul {
+    list-style: none;
+    padding-inline-start: 0;
+
+    /* Resets native.css `li { margin-inline-start: 1.125em }` so the icon
+       column sits flush with the prose left edge. */
+    & > li {
+      position: relative;
+      margin-inline-start: 0;
+      padding-inline-start: calc(1.25em + var(--wa-space-s));
+
+      & + li {
+        margin-block-start: var(--wa-space-s);
+      }
+
+      /* Bigger gap after entries with a nested list. */
+      &:has(:is(ul, ol)) + li {
+        margin-block-start: var(--wa-space-m);
+      }
+
+      & :is(ul, ol) {
+        margin-block: var(--wa-space-xs);
+
+        /* `::marker` ignores opacity; bake de-emphasis into the color. */
+        & > li::marker {
+          color: color-mix(in oklch, var(--wa-color-text-quiet) 60%, transparent);
+        }
+      }
+
+      & > .changelog-bullet {
+        position: absolute;
+        inset-inline-start: 0;
+        inset-block-start: 0.4em;
+        color: var(--wa-color-text-quiet);
+        font-size: var(--wa-font-size-s);
+      }
+    }
+  }
+}
+
+h1.title wa-badge {
+  vertical-align: middle;
+  font-size: 1.5rem;
+}
+
 .component-info {
-  display: flex;
-  gap: var(--wa-space-xs);
-  flex-wrap: wrap;
-  align-items: center;
   margin-block-end: var(--wa-content-spacing);
 
   code {
     line-height: var(--wa-line-height-condensed);
   }
-}
 
-/* Current link */
-#sidebar,
-#outline {
-  .current {
-    font-weight: var(--wa-font-weight-bold);
-    text-decoration-style: solid;
+  .component-tag {
+    background-color: transparent;
+    color: var(--wa-color-text-quiet);
+    font-size: var(--wa-font-size-l);
+  }
+
+  /* The category and since badges are wrapped in an <a> for the link, but the
+     wrapper was introducing a baseline offset against the bare wa-badge
+     siblings. Using display: contents removes the anchor's box from layout so
+     the badge becomes a direct flex child of the cluster (same as the others). */
+  .component-category-link,
+  .component-since-link {
+    display: contents;
+    text-decoration: none;
   }
 }
 
-/* Callouts */
-.callout {
-  display: flex;
-  gap: 1rem;
-  border: var(--wa-border-style) var(--wa-border-width-s);
-  border-radius: var(--wa-border-radius-l);
-  padding: 1rem;
-  margin-block-end: var(--wa-content-spacing);
-
-  :first-child {
-    margin-block-start: 0;
-  }
-
-  :last-child {
-    margin-block-end: 0;
-  }
+.component-summary,
+.support-intro {
+  font-weight: var(--wa-font-weight-semibold);
+  font-size: var(--wa-font-size-l);
 }
 
-.callout-icon {
-  flex: 0 0 auto;
-  font-size: 1.5rem;
-}
-
-.callout-content {
-  flex: 1 1 auto;
-}
-
-.callout-info {
-  background-color: var(--wa-color-brand-fill-quiet);
-  border-color: var(--wa-color-brand-border-quiet);
-
-  .callout-icon {
-    color: var(--wa-color-brand-on-normal);
-  }
-
-  code {
-    background-color: var(--wa-color-brand-fill-normal);
-  }
-}
-
-.callout-warning {
-  background-color: var(--wa-color-warning-fill-quiet);
-  border-color: var(--wa-color-warning-border-quiet);
-
-  .callout-icon {
-    color: var(--wa-color-warning-on-normal);
-  }
-
-  code {
-    background-color: var(--wa-color-warning-fill-normal);
+/* Callouts in content */
+#content > wa-callout {
+  &[variant='brand'] code {
+    background-color: color-mix(in oklab, var(--wa-color-brand-fill-soft), black 2.5%);
   }
 }
 
 /* Images & Figures */
-
 figure.signpost {
   display: flex;
   flex-direction: column;
@@ -443,13 +325,8 @@ figure.signpost {
   }
 }
 
-/* Search list pages */
-wa-page > main:has(> .search-list) {
-  max-width: var(--content-width-l);
-  margin-inline: auto;
-}
-
 .search-list {
+  container-type: inline-size;
   .search-list-input {
     margin-block-end: var(--wa-space-3xl);
   }
@@ -460,16 +337,24 @@ wa-page > main:has(> .search-list) {
     gap: var(--wa-space-2xl);
     margin-block-end: var(--wa-space-3xl);
 
-    @media screen and (max-width: 1470px) {
+    @container (inline-size < 48rem) {
       grid-template-columns: repeat(3, 1fr);
     }
 
-    @media screen and (max-width: 960px) {
+    @container (inline-size < 36rem) {
       grid-template-columns: repeat(2, 1fr);
     }
 
-    @media screen and (max-width: 500px) {
+    @container (inline-size < 24rem) {
       grid-template-columns: repeat(1, 1fr);
+    }
+
+    &.large {
+      grid-template-columns: repeat(2, 1fr);
+
+      @container (inline-size < 40rem) {
+        grid-template-columns: repeat(1, 1fr);
+      }
     }
 
     a {
@@ -479,23 +364,18 @@ wa-page > main:has(> .search-list) {
 
     wa-card {
       --spacing: var(--wa-space-m);
-      box-shadow: none;
 
       [slot='header'] {
         display: flex;
       }
 
-      &::part(header) {
+      &[with-header]::part(header) {
         background-color: var(--header-background, var(--wa-color-neutral-fill-quiet));
         display: flex;
         align-items: center;
         justify-content: center;
         min-block-size: calc(6rem + var(--spacing));
-      }
-
-      &:hover {
-        border-color: var(--wa-color-brand-border-loud);
-        box-shadow: 0 0 0 0.0625rem var(--wa-color-brand-border-loud);
+        padding: var(--spacing);
       }
     }
   }
@@ -506,146 +386,354 @@ wa-card .page-name {
   font-weight: var(--wa-font-weight-action);
 }
 
-/* Swatches */
+/* Restore full-size rendering of platform symbols (⌘, ⌥, ⇧, etc.) inside <kbd>,
+   which uses a code font that tends to render these glyphs undersized. */
+.kbd-symbol {
+  font-family: var(--wa-font-family-body);
+}
+
+/* Card-based, name-first listing layout used by component/pattern/utility browse pages */
+.component-list,
+.modern-card-list {
+  container-type: inline-size;
+
+  .search-list-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--wa-space-m);
+    margin-block-end: var(--wa-space-l);
+
+    @container (inline-size < 56rem) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @container (inline-size < 35rem) {
+      grid-template-columns: 1fr;
+    }
+
+    a {
+      color: var(--wa-color-text-normal);
+      text-decoration: none;
+    }
+
+    wa-card {
+      --spacing: var(--wa-space-m);
+      block-size: 100%;
+    }
+
+    wa-card::part(body) {
+      display: flex;
+      flex-direction: column;
+      block-size: 100%;
+    }
+
+    .page-name {
+      display: block;
+      font-size: var(--wa-font-size-l);
+      font-weight: var(--wa-font-weight-heading);
+      line-height: var(--wa-line-height-condensed);
+      margin-block-end: var(--wa-space-xs);
+    }
+
+    .component-list-summary,
+    .modern-card-summary {
+      color: var(--wa-color-text-quiet);
+      font-size: var(--wa-font-size-s);
+      line-height: var(--wa-line-height-normal);
+      margin: 0 0 var(--wa-space-m);
+
+      &:last-child {
+        margin-block-end: 0;
+      }
+    }
+
+    .component-list-badges {
+      font-size: var(--wa-font-size-s);
+      margin-block-start: auto;
+    }
+  }
+}
+
+.component-list {
+  .search-list-input {
+    display: block;
+    margin-block: var(--wa-space-m) var(--wa-space-s);
+  }
+
+  .search-list-shortcut {
+    text-align: center;
+    color: var(--wa-color-text-quiet);
+    font-size: var(--wa-font-size-s);
+    margin-block: 0 var(--wa-space-2xl);
+  }
+}
+
+/* Modern card list: left-aligned "Browse X" heading + search input (used by utilities, tokens, patterns) */
+.modern-card-list-heading {
+  margin-block: 0 var(--wa-space-xl);
+}
+
+.modern-card-list {
+  .search-list-input {
+    display: block;
+    margin-block: 0 var(--wa-space-2xl);
+  }
+
+  .modern-card-list-category {
+    margin-block: var(--wa-space-2xl) var(--wa-space-m);
+    font-size: var(--wa-font-size-xl);
+
+    &:first-of-type {
+      margin-block-start: 0;
+    }
+  }
+}
+
+/* #region Support
+   /support drives the shared .search-list filter, but its filterable units are prose
+   FAQ entries instead of card-grid links. */
+.support-view {
+  .search-list-input {
+    display: block;
+    margin-block-end: var(--wa-space-s);
+  }
+
+  /* The filter's label is visually hidden, so its empty box shouldn't reserve space. */
+  .search-list-input::part(form-control-label) {
+    margin-block-end: 0;
+  }
+}
+
+/* Guarded on :not([hidden]) because the display declaration would otherwise beat [hidden]. */
+.search-list-empty:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wa-space-s);
+  color: var(--wa-color-text-quiet);
+
+  p {
+    margin: 0;
+  }
+}
+
+/* A lowered surface, not a dashed outline: a zero-result view is a real state of the page,
+   not a slot waiting for content. Shared with the components index's own #components-empty
+   so both empty states read the same. */
+.empty-state-panel {
+  /* One step off whatever the page's own ground is. Lowered is right on the docs surface,
+     which sits on the default surface; the pro components index rebinds it (site.css) because
+     that page's ground is already lowered. */
+  --panel-surface: var(--wa-color-surface-lowered);
+
+  align-self: stretch;
+  background-color: var(--panel-surface);
+  border-radius: var(--wa-border-radius-l);
+  padding: var(--wa-space-3xl);
+}
+
+/* Four empty-state actions wrap 3+1 in a cluster. As a grid they can only square up or stack:
+   with wa-gap-s (12px), two columns need 2 × 14rem + 12px = 460px and three would need
+   3 × 14rem + 24px = 696px, so capping the grid below that makes a three-across row
+   unreachable at any viewport. Above 460px it settles at 2×2, below it collapses to one
+   column. The cap and fill are custom because the utility set ships no width classes;
+   --min-column-size is wa-grid's own customization API. */
+.search-list-empty-actions {
+  --min-column-size: 14rem;
+  inline-size: 100%;
+  max-inline-size: 30rem;
+}
+
+.search-list-empty-actions wa-button {
+  inline-size: 100%;
+}
+
+/* Timings come from the theme's transition tokens — no bespoke values. The script
+   flags every results region, so this is the default for all search lists. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-search-list-updated] {
+    animation: search-list-updated var(--wa-transition-normal) var(--wa-transition-easing);
+  }
+
+  @keyframes search-list-updated {
+    from {
+      opacity: 0.75;
+    }
+  }
+}
+
+.support-popular {
+  margin-block-end: var(--wa-space-4xl);
+}
+
+/* Upgraded by search-list.js into a toggle button (role="button" + aria-pressed), so the
+   pressed chip is the one whose term is currently filtering the page. */
+.support-popular-link {
+  border: var(--wa-border-style) var(--wa-border-width-s) var(--wa-color-surface-border);
+  padding: var(--wa-space-3xs) var(--wa-space-s);
+  text-decoration: none;
+  transition:
+    border-color var(--wa-transition-normal),
+    background-color var(--wa-transition-normal),
+    color var(--wa-transition-normal);
+
+  &:is(:hover, :focus-visible) {
+    border-color: var(--wa-color-brand-border-loud);
+  }
+
+  &[aria-pressed='true'] {
+    background-color: var(--wa-color-brand-fill-quiet);
+    border-color: var(--wa-color-brand-border-quiet);
+    color: var(--wa-color-brand-on-quiet);
+  }
+}
+
+/* Weight is deliberately NOT set — it inherits the same heading weight as every other heading
+   on the site, because a heading at body weight reads as broken rather than as quiet. The
+   demotion is size plus color, never weight. */
+.support-section-heading {
+  color: var(--wa-color-text-quiet);
+  /* One step below the questions, which sit at wa-heading-l (20px). If the questions ever
+     move, move this with them: the pair is what carries the hierarchy. */
+  font-size: var(--wa-font-size-m);
+  line-height: var(--wa-line-height-condensed);
+  /* wa-prose tightens h1/h2 tracking for display sizes; at this step it should read normally. */
+  letter-spacing: normal;
+  margin-block: var(--wa-space-4xl) var(--wa-space-xs);
+}
+
+/* The chip row above already separates the first section. */
+.support-results > .support-section-heading:first-child {
+  margin-block-start: 0;
+}
+
+.support-section-blurb {
+  border-block-end: var(--wa-border-style) var(--wa-panel-border-width) var(--wa-color-surface-border);
+  padding-block-end: var(--wa-space-s);
+}
+
+/* Progressive enhancement: FAQ entries coming back fade in instead of snapping. Engines
+   without @starting-style ignore this and keep the instant toggle. Gated on
+   data-search-list-filtered so the first paint of the page isn't animated. Scoped to the
+   FAQ entries rather than shared with the card grids: card links already run their own
+   transition for .hover-grow / .hover-emphasize-border, and a second `transition` shorthand
+   on the same element would clobber it. */
+@media (prefers-reduced-motion: no-preference) {
+  .support-results[data-search-list-filtered] .faq-entry {
+    opacity: 1;
+    /* Only opacity transitions. `display` is deliberately out of the list: with allow-discrete
+       the exit held the entry at full opacity for the whole duration and then popped it away,
+       because nothing animates opacity on the way out. Filtering out is instant now; coming
+       back still fades, since @starting-style applies whenever an entry is rendered again. */
+    transition: opacity var(--wa-transition-normal) var(--wa-transition-easing);
+
+    @starting-style {
+      opacity: 0;
+    }
+  }
+}
+
+/* Channel rows: heading + blurb flanked by their actions, no card chrome and no rules —
+   spacing alone separates them. The stack's gap has to beat the flank's own wa-gap-xl (32px)
+   between a row's content and its actions, or a stacked row at narrow widths reads as two
+   rows; wa-gap-3xl clears that and preserves the separation the hairlines used to carry. */
+.support-channel {
+  /* One shared basis for every row's actions, whether that's a lone button or a stack of
+     two. wa-flank derives its wrap point from this, so all three rows break to a single
+     column at the same width instead of each one breaking at its own button's width. */
+  --flank-size: 15rem;
+
+  /* Only a floor — the blurb still takes every pixel the actions don't need. */
+  --content-percentage: 40%;
+}
+
+/* #endregion */
+
+/* Framework docs: hub logo cards + framework-page info cards */
+
+/* Hub: brand logos sit in a fixed-height row, always in full brand color */
+.framework-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  block-size: 2.5rem;
+}
+
+.framework-icon {
+  max-inline-size: 6.5rem;
+  font-size: var(--wa-font-size-3xl);
+  color: var(--color, currentColor);
+}
+
+.search-list-grid .framework-card::part(body) {
+  align-items: center;
+  justify-content: center;
+  gap: var(--wa-space-s);
+  min-block-size: 8rem;
+  text-align: center;
+}
+
+.framework-card .page-name {
+  margin: 0;
+}
+
+/* Framework pages: "next steps" / "see it in action" info cards */
+.info-cards .search-list-grid wa-card {
+  --spacing: var(--wa-space-l);
+}
+
+.info-cards .search-list-grid .page-name {
+  font-size: var(--wa-font-size-m);
+}
+
+.info-card-icon {
+  margin-block-end: var(--wa-space-s);
+  font-size: var(--wa-font-size-xl);
+}
+
+/* Duotone icon whose secondary (brand) color fades in on hover.
+   Companion to .duotone-illustrated (utils.css); ported so it also works on the free docs build. */
+.duotone-hover-context wa-icon.duotone-illustrated.duotone-secondary-reveal {
+  --secondary-opacity: 0;
+  transition: --secondary-opacity var(--wa-transition-slow) ease-in-out;
+}
+
+.duotone-hover-context[data-duotone-hover-trigger]:is(:hover, :focus-visible)
+  wa-icon.duotone-illustrated.duotone-secondary-reveal,
+.duotone-hover-context:has(:is(a, button):is(:hover, :focus-visible))
+  wa-icon.duotone-illustrated.duotone-secondary-reveal {
+  --secondary-opacity: 1;
+}
+
+/* Reduced motion + touch: show the two-tone icon up front instead of on hover */
+@media (prefers-reduced-motion: reduce), (hover: none) {
+  .duotone-hover-context wa-icon.duotone-illustrated.duotone-secondary-reveal {
+    transition: none;
+    --secondary-opacity: 1;
+  }
+}
+
+/* Design Tokens Swatches */
 .swatch {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: transparent;
-  border-color: var(--wa-color-neutral-border-normal);
+  border-color: transparent;
   border-style: var(--wa-border-style);
   border-width: var(--wa-border-width-s);
   border-radius: var(--wa-border-radius-m);
   box-sizing: border-box;
-  min-height: 2.5em;
+  min-block-size: 3rem;
+  min-inline-size: 3rem;
   padding: var(--wa-space-xs);
   font-weight: var(--wa-font-weight-semibold);
   line-height: var(--wa-line-height-condensed);
-
-  &.color {
-    border-color: transparent;
-    transition: background var(--wa-transition-slow);
-    background: linear-gradient(var(--color-2, transparent) 0% 100%) no-repeat border-box var(--color,);
-    background-position: var(--color-2-position, bottom);
-    background-size: var(--color-2-width, 100%) var(--color-2-height, 50%);
-
-    &.contrast-fail {
-      outline: 1px dashed var(--wa-color-red);
-      outline-offset: calc(-1 * var(--wa-space-2xs));
-    }
-  }
-
-  > wa-copy-button {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    font-family: var(--wa-font-family-code);
-
-    &::part(button) {
-      display: block;
-      height: 100%;
-      width: 100%;
-    }
-
-    &::part(button):hover {
-      background-color: transparent;
-      cursor: copy;
-    }
-
-    &::part(copy-icon),
-    &::part(success-icon),
-    &::part(error-icon) {
-      opacity: 0 !important;
-    }
-  }
 }
 
-table.colors {
-  thead {
-    th {
-      text-align: center;
-      padding-block: 0;
-    }
-  }
-
-  tbody {
-    tr {
-      border: none;
-      @media (hover: hover) {
-        &:hover {
-          background: transparent;
-        }
-      }
-    }
-
-    th {
-      width: 0;
-      vertical-align: middle;
-      text-align: right;
-    }
-
-    td {
-      padding-inline: var(--wa-space-3xs);
-      padding-block: var(--wa-space-s);
-    }
-  }
-
-  .core-column {
-    padding-inline-end: var(--wa-space-xl);
-  }
-}
-
-.value-up,
-.value-down {
-  position: relative;
-
-  &::after {
-    content: ' ' var(--icon);
-    position: absolute;
-    margin-inline-start: 3em;
-    scale: 1 0.6;
-    color: color-mix(in oklch, oklch(from var(--icon-color) none c h) 0%, oklch(from currentColor l none none));
-    font-size: 90%;
-  }
-}
-
-.value-down {
-  --icon: '▼';
-  --icon-color: var(--wa-color-danger-fill-quiet);
-
-  &::after {
-    margin-block-end: -0.2em;
-  }
-}
-
-.value-up {
-  --icon: '▲';
-  --icon-color: var(--wa-color-success-fill-quiet);
-}
-
-/* Layout Examples */
-.layout-example-boundary {
-  border: var(--wa-border-width-s) dashed var(--wa-color-neutral-border-normal);
-  border-radius: var(--wa-border-radius-l);
-  padding: var(--wa-space-s);
-}
-
-.layout-example-block {
-  background-color: var(--wa-color-indigo-60);
-  border-radius: var(--wa-border-radius-m);
-  min-block-size: 4rem;
-  min-inline-size: 4rem;
-}
-
-.layout-example-mixed-sizing .layout-example-block:nth-child(3n) {
-  min-inline-size: 6rem;
-}
-.layout-example-mixed-sizing .layout-example-block:nth-child(3n + 2) {
-  min-inline-size: 8rem;
+.token-name {
+  white-space: nowrap;
 }
 
 /* Component API tables */
@@ -653,79 +741,70 @@ wa-scroller:has(.component-table) {
   margin-block-end: var(--wa-space-xl);
 }
 
-.component-table {
-  .table-name {
-    white-space: nowrap;
+#content {
+  .component-table {
+    font-variant-numeric: tabular-nums;
+
+    .table-name {
+      white-space: nowrap;
+    }
+
+    .table-arguments,
+    .table-description {
+      min-inline-size: var(--line-length-s);
+
+      code {
+        white-space: normal;
+      }
+    }
+
+    .table-selector {
+      white-space: nowrap;
+    }
+
+    .table-selector .wa-cluster {
+      flex-wrap: nowrap;
+    }
+
+    .table-reflect {
+      text-align: center;
+    }
+
+    code {
+      white-space: inherit;
+      background: transparent;
+      padding-inline: 0;
+    }
   }
 
-  .table-arguments,
-  .table-description {
-    min-width: var(--line-length-xs);
-  }
+  .component-help {
+    display: flex;
+    inline-size: 100%;
+    gap: var(--wa-space-m);
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: start;
+    margin-block-start: var(--wa-space-xl);
 
-  .table-selector .wa-cluster {
-    flex-wrap: nowrap;
-  }
-
-  .table-reflect {
-    text-align: center;
-  }
-
-  code {
-    white-space: inherit;
-  }
-}
-
-.component-help {
-  display: flex;
-  width: 100%;
-  gap: var(--wa-space-m);
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: start;
-  margin-block-start: var(--wa-space-xl);
-
-  strong {
-    font-size: var(--wa-font-size-s);
-    font-weight: var(--wa-font-weight-semibold);
-  }
-}
-
-/** desktop */
-@media screen and not (max-width: 1180px) {
-  /* Navigation sidebar */
-  wa-page::part(navigation) {
-    border-right: var(--wa-border-style) var(--wa-panel-border-width) var(--wa-color-surface-border);
-  }
-
-  wa-page > #sidebar {
-    overflow: auto;
-    max-height: 100%;
-    min-width: 300px;
-    padding: var(--wa-space-xl);
-    max-width: 300px;
-  }
-
-  wa-page > main {
-    padding: var(--wa-space-3xl);
-  }
-}
-
-.page-wide {
-  wa-page > main {
-    max-width: var(--content-width-l);
-
-    .max-line-length {
-      max-width: var(--line-length-l);
+    strong {
+      font-size: var(--wa-font-size-s);
+      font-weight: var(--wa-font-weight-semibold);
     }
   }
 }
 
-.layout-theme {
-  iframe {
-    width: 100%;
-    min-height: 16lh;
-    height: 65vh;
-    max-height: 21lh;
-  }
+/* Hosted project install instructions — tighter rhythm inside tab panels */
+#content .hosted-project-instructions .instruction-group + .instruction-group,
+#content .hosted-project-instructions .free-instructions + .pro-instructions {
+  margin-block-start: var(--wa-space-xl);
+}
+
+#content .hosted-project-instructions table {
+  margin-block: 0;
+}
+
+/* Icon docs: copy-button-wrapped icon previews. The copy button hosts a quiet
+   neutral color; reset it so the slotted icons match a default wa-icon. */
+#content .icon-copy-row wa-copy-button {
+  color: inherit;
 }

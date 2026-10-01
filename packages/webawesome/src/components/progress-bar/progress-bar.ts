@@ -8,18 +8,20 @@ import { LocalizeController } from '../../utilities/localize.js';
 import styles from './progress-bar.styles.js';
 
 /**
- * @summary Progress bars are used to show the status of an ongoing operation.
+ * @summary Progress bars show how far along an ongoing operation is as a horizontal fill. Use them for file uploads,
+ *  multi-step flows, or any task with measurable progress.
  * @documentation https://webawesome.com/docs/components/progress-bar
  * @status stable
  * @since 2.0
  *
  * @slot - A label to show inside the progress indicator.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `progress-bar` part instead.
+ * @csspart progress-bar - The component's outer wrapper.
  * @csspart indicator - The progress bar's indicator.
  * @csspart label - The progress bar's label.
  *
- * @cssproperty [--track-height=1rem] - The color of the track.
+ * @cssproperty [--track-height=1rem] - The height of the track.
  * @cssproperty [--track-color=var(--wa-color-neutral-fill-normal)] - The color of the track.
  * @cssproperty [--indicator-color=var(--wa-color-brand-fill-loud)] - The color of the indicator.
  */
@@ -37,6 +39,15 @@ export default class WaProgressBar extends WebAwesomeElement {
   /** A custom label for assistive devices. */
   @property() label = '';
 
+  willUpdate(changedProperties: PropertyValues<this>) {
+    // This is intended for the server.
+    if (this.style == null) {
+      this.setStyleProperty('--percentage', `${clamp(this.value, 0, 100)}%`);
+    }
+
+    super.willUpdate(changedProperties);
+  }
+
   updated(changedProperties: PropertyValues<this>) {
     if (changedProperties.has('value')) {
       // Wait a cycle before setting it so Safari animates it.
@@ -45,12 +56,14 @@ export default class WaProgressBar extends WebAwesomeElement {
         this.style.setProperty('--percentage', `${clamp(this.value, 0, 100)}%`);
       });
     }
+
+    super.updated(changedProperties);
   }
 
   render() {
     return html`
       <div
-        part="base"
+        part="base progress-bar"
         class="progress-bar"
         role="progressbar"
         title=${ifDefined(this.title)}

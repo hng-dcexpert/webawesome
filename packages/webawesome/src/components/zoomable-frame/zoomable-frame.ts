@@ -1,14 +1,16 @@
 import type { PropertyValues } from 'lit';
-import { html } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import { html, isServer } from 'lit';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import { ColorSchemeController } from '../../internal/color-scheme-controller.js';
 import { parseSpaceDelimitedTokens } from '../../internal/parse.js';
 import WebAwesomeElement from '../../internal/webawesome-element.js';
 import { LocalizeController } from '../../utilities/localize.js';
+import '../icon/icon.js';
 import styles from './zoomable-frame.styles.js';
 
 /**
- * @summary Zoomable frames render iframe content with zoom and interaction controls.
+ * @summary Zoomable frames embed iframe content with built-in controls for zooming, panning, and managing interaction.
  * @documentation https://webawesome.com/docs/components/zoomable-frame
  * @status stable
  * @since 3.0
@@ -18,7 +20,7 @@ import styles from './zoomable-frame.styles.js';
  * @slot zoom-in-icon - The slot that contains the zoom in icon.
  * @slot zoom-out-icon - The slot that contains the zoom out icon.
  *
- * @event load - Emitted when the internal iframe when it finishes loading.
+ * @event load - Emitted from the internal iframe when it finishes loading.
  * @event error - Emitted from the internal iframe when it fails to load.
  *
  * @csspart iframe - The internal `<iframe>` element.
@@ -31,7 +33,15 @@ export default class WaZoomableFrame extends WebAwesomeElement {
   static css = styles;
 
   private readonly localize = new LocalizeController(this);
-  private availableZoomLevels: number[] = [];
+  // SSR guard: MutationObserver is not available during server-side rendering
+  private themeObserver: MutationObserver | null = !isServer ? new MutationObserver(() => this.syncTheme()) : null;
+
+  @state() private availableZoomLevels: number[] = [];
+
+  constructor() {
+    super();
+    new ColorSchemeController(this, () => this.syncTheme());
+  }
 
   @query('#iframe') iframe: HTMLIFrameElement;
 
@@ -41,17 +51,36 @@ export default class WaZoomableFrame extends WebAwesomeElement {
   /** Inline HTML to display. */
   @property() srcdoc: string;
 
+  /**
+   * A [Permissions Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Permissions_Policy) that controls which
+   * features the embedded content can use, e.g. `clipboard-write; fullscreen`. The browser reads this when the frame
+   * loads, so changing it afterwards has no effect until the frame navigates again.
+   */
+  @property() allow: string;
+
   /** Allows fullscreen mode. */
   @property({ type: Boolean }) allowfullscreen = false;
 
   /** Controls iframe loading behavior. */
   @property() loading: 'eager' | 'lazy' = 'eager';
 
+  /** The name of the frame, which lets it be targeted by links and forms using the same name. */
+  @property() name: string;
+
   /** Controls referrer information. */
   @property() referrerpolicy: string;
 
-  /** Security restrictions for the iframe. */
+  /**
+   * Security restrictions for the iframe. The browser reads this when the frame loads, so changing it afterwards has
+   * no effect until the frame navigates again.
+   */
   @property() sandbox: string;
+
+  /**
+   * An accessible name for the frame. Screen readers announce it when moving between frames, so set one that describes
+   * the frame's content.
+   */
+  @property() label = '';
 
   /** The current zoom of the frame, e.g. 0 = 0% and 1 = 100%. */
   @property({ type: Number, reflect: true }) zoom = 1;
@@ -66,6 +95,9 @@ export default class WaZoomableFrame extends WebAwesomeElement {
 
   /** Disables interaction when present. */
   @property({ type: Boolean, attribute: 'without-interaction', reflect: true }) withoutInteraction = false;
+
+  /** Enables automatic theme syncing (light/dark mode and theme selector classes) from the host document to the iframe. */
+  @property({ type: Boolean, attribute: 'with-theme-sync', reflect: true }) withThemeSync = false;
 
   /** Returns the internal iframe's `window` object. (Readonly property) */
   public get contentWindow(): Window | null {
@@ -139,11 +171,15 @@ export default class WaZoomableFrame extends WebAwesomeElement {
     return currentIndex <= 0;
   }
 
-  updated(changedProperties: PropertyValues<this>) {
+  willUpdate(changedProperties: PropertyValues<this>) {
     if (changedProperties.has('zoom')) {
-      this.style.setProperty('--zoom', `${this.zoom}`);
+      this.setStyleProperty('--zoom', `${this.zoom}`);
     }
 
+    super.willUpdate(changedProperties);
+  }
+
+  updated(changedProperties: PropertyValues<this>) {
     if (changedProperties.has('zoomLevels')) {
       this.availableZoomLevels = this.parseZoomLevels(this.zoomLevels);
 
@@ -155,6 +191,16 @@ export default class WaZoomableFrame extends WebAwesomeElement {
         }
       }
     }
+
+    if (changedProperties.has('withThemeSync')) {
+      if (this.withThemeSync) {
+        this.themeObserver?.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        this.syncTheme(); // Apply immediately when toggled on
+      } else {
+        this.themeObserver?.disconnect();
+      }
+    }
+    super.updated(changedProperties);
   }
 
   /** Zooms in to the next available zoom level. */
@@ -185,7 +231,55 @@ export default class WaZoomableFrame extends WebAwesomeElement {
     }
   }
 
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.themeObserver?.disconnect();
+  }
+
+  private syncTheme() {
+    if (!this.withThemeSync) return;
+    try {
+      const iframeRoot = this.contentDocument?.documentElement;
+      if (!iframeRoot) return;
+
+      // Walk up from host to find nearest WA theme classes
+      const prefixes = ['wa-theme-', 'wa-brand-', 'wa-palette-'];
+      const schemeCls = new Set<string>(); // wa-dark or wa-light
+      const themeCls = new Set<string>(); // wa-theme-*, etc.
+      let el: Element | null = this;
+      let schemeFound = false;
+
+      while (el) {
+        if (!schemeFound) {
+          if (el.classList.contains('wa-dark')) {
+            schemeCls.add('wa-dark');
+            schemeFound = true;
+          } else if (el.classList.contains('wa-light')) {
+            schemeCls.add('wa-light');
+            schemeFound = true;
+          }
+        }
+        for (const cls of el.classList) {
+          if (prefixes.some(p => cls.startsWith(p))) themeCls.add(cls);
+        }
+        el = el.parentElement;
+      }
+
+      // Sync light/dark
+      iframeRoot.classList.toggle('wa-dark', schemeCls.has('wa-dark'));
+      iframeRoot.classList.toggle('wa-light', schemeCls.has('wa-light'));
+
+      // Sync theme/brand/palette classes
+      const toRemove = Array.from(iframeRoot.classList).filter(c => prefixes.some(p => c.startsWith(p)));
+      iframeRoot.classList.remove(...toRemove);
+      iframeRoot.classList.add(...themeCls);
+    } catch {
+      // Cross-origin iframe — silently ignore
+    }
+  }
+
   private handleLoad() {
+    if (this.withThemeSync) this.syncTheme();
     this.dispatchEvent(new Event('load', { bubbles: false, cancelable: false, composed: true }));
   }
 
@@ -201,9 +295,12 @@ export default class WaZoomableFrame extends WebAwesomeElement {
           part="iframe"
           ?inert=${this.withoutInteraction}
           ?allowfullscreen=${this.allowfullscreen}
+          allow=${ifDefined(this.allow ?? undefined)}
+          sandbox=${ifDefined(this.sandbox ?? undefined)}
+          referrerpolicy=${ifDefined(this.referrerpolicy ?? undefined)}
+          name=${ifDefined(this.name ?? undefined)}
+          title=${ifDefined(this.label || undefined)}
           loading=${this.loading}
-          referrerpolicy=${this.referrerpolicy}
-          sandbox=${ifDefined((this.sandbox as any) ?? undefined)}
           src=${ifDefined(this.src ?? undefined)}
           srcdoc=${ifDefined(this.srcdoc ?? undefined)}
           @load=${this.handleLoad}

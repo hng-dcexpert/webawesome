@@ -4,11 +4,8 @@ export default css`
   :host {
     --arrow-size: 0.375rem;
     --max-width: 25rem;
-    --show-duration: 100ms;
-    --hide-duration: 100ms;
-
-    /* Internal calculated properties */
-    --arrow-diagonal-size: calc((var(--arrow-size) * sin(45deg)));
+    --show-duration: var(--wa-transition-fast);
+    --hide-duration: var(--wa-transition-fast);
 
     display: contents;
 
@@ -45,18 +42,18 @@ export default css`
   /* The <wa-popup> element */
   .popover {
     --arrow-size: inherit;
+    --popup-border-width: var(--wa-panel-border-width);
     --show-duration: inherit;
     --hide-duration: inherit;
 
     pointer-events: auto;
 
+    /* Inset box-shadow, not a border: Safari seams a clip-path edge that runs along a border. */
     &::part(arrow) {
       background-color: var(--wa-color-surface-default);
-      border-top: none;
-      border-left: none;
-      border-bottom: solid var(--wa-panel-border-width) var(--wa-color-surface-border);
-      border-right: solid var(--wa-panel-border-width) var(--wa-color-surface-border);
-      box-shadow: none;
+      border: none;
+      box-shadow: inset calc(-1 * var(--wa-panel-border-width)) calc(-1 * var(--wa-panel-border-width)) 0 0
+        var(--wa-color-surface-border);
     }
   }
 
@@ -80,8 +77,8 @@ export default css`
   .body {
     display: flex;
     flex-direction: column;
-    width: max-content;
-    max-width: var(--max-width);
+    width: auto;
+    max-width: min(var(--max-width), 100vw);
     padding: var(--wa-space-l);
     background-color: var(--wa-color-surface-default);
     border: var(--wa-panel-border-width) solid var(--wa-color-surface-border);

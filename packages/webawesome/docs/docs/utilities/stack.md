@@ -3,22 +3,35 @@ title: Stack
 description: 'Use `wa-stack` to arrange elements in the block direction with even spacing.'
 layout: docs
 tags: layoutUtilities
+synonyms:
+  - vertical stack
+  - vstack
+  - column layout
+use-cases:
+  - vertical spacing
+  - stacked layout
+  - card stack
+  - vertical rhythm
 ---
 
 <style>
   :is(.wa-flank, .wa-grid, .wa-stack) > [class*='wa-stack']:has(div:empty) {
-    border: var(--wa-border-width-s) dashed var(--wa-color-neutral-border-normal);
-    border-radius: var(--wa-border-radius-l);
-    padding: var(--wa-space-s);
+    border: var(--layout-example-border);
+    border-radius: var(--layout-example-border-radius);
+    padding: var(--layout-example-padding);
   }
 
   [class*='wa-stack'] div:empty {
-    background-color: var(--wa-color-indigo-60);
-    border-radius: var(--wa-border-radius-m);
+    background-color: var(--layout-example-element-background);
+    border-radius: var(--layout-example-element-border-radius);
     min-block-size: 4rem;
     min-inline-size: 4rem;
   }
 </style>
+
+A stack arranges its children in a vertical column with an equal gap between each item, so you don't have to add top or bottom margins to every element you put into it. It's the go-to layout for forms, paragraphs of text, card bodies, and anywhere you want consistent vertical rhythm.
+
+By default, items stretch to fill the stack's width. Pair `wa-stack` with a [`wa-gap-*`](/docs/utilities/gap) class to control the spacing and a [`wa-align-items-*`](/docs/utilities/align-items) class to change how children line up horizontally.
 
 ```html {.example}
 <div class="wa-stack">
@@ -38,10 +51,10 @@ Stacks are well suited for forms, text, and ensuring consistent spacing between 
     <wa-icon slot="start" name="envelope" variant="regular"></wa-icon>
   </wa-input>
   <wa-input label="Password" type="password">
-    <wa-icon slot="start" name="lock" variant="regular"></wa-icon>
+    <wa-icon slot="start" name="lock"></wa-icon>
   </wa-input>
   <wa-checkbox>Remember me on this device</wa-checkbox>
-  <wa-button>Log In</wa-button>
+  <wa-button appearance="filled">Log In</wa-button>
 </div>
 ```
 
@@ -62,13 +75,7 @@ Stacks are well suited for forms, text, and ensuring consistent spacing between 
 
 ## Align Items
 
-By default, items stretch to fill the inline size of the `wa-stack` container. You can add any of the following [`wa-align-items-*`](/docs/utilities/align-items) classes to an element with `wa-stack` to specify how items are aligned in the inline direction:
-
-- `wa-align-items-start`
-- `wa-align-items-end`
-- `wa-align-items-center`
-- `wa-align-items-stretch`
-- `wa-align-items-baseline`
+By default, items stretch to fill the inline size of the `wa-stack` container. Add any [`wa-align-items-*`](/docs/utilities/align-items) class to change how items line up in the inline direction.
 
 ```html {.example}
 <div class="wa-grid">
@@ -92,18 +99,7 @@ By default, items stretch to fill the inline size of the `wa-stack` container. Y
 
 ## Gap
 
-By default, the gap between stack items uses `--wa-space-m` from your theme. You can add any of the following [`wa-gap-*`](/docs/utilities/gap) classes to an element with `wa-stack` to specify the gap between items:
-
-- `wa-gap-0`
-- `wa-gap-3xs`
-- `wa-gap-2xs`
-- `wa-gap-xs`
-- `wa-gap-s`
-- `wa-gap-m`
-- `wa-gap-l`
-- `wa-gap-xl`
-- `wa-gap-2xl`
-- `wa-gap-3xl`
+By default, the gap between stack items uses `--wa-space-m` from your theme. Add any [`wa-gap-*`](/docs/utilities/gap) class to change the spacing between items.
 
 ```html {.example}
 <div class="wa-grid">

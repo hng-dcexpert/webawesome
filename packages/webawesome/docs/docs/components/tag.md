@@ -1,9 +1,33 @@
 ---
 title: Tag
-description: Tags are used as labels to organize things or to indicate a selection.
 layout: component
-category: Feedback & Status
+category: Feedback
+synonyms:
+  - chip
+  - label
+  - pill
+  - token
+  - badge
+use-cases:
+  - filter tag
+  - removable tag
+  - category label
+  - keyword
 ---
+
+```html {.example}
+<wa-tag>Featured</wa-tag>
+```
+
+```html {.example .anatomy-only}
+<wa-tag><wa-icon name="star"></wa-icon> Featured</wa-tag>
+```
+
+## Examples
+
+### Variant
+
+Set the `variant` attribute to match the tag to its meaning.
 
 ```html {.example}
 <wa-tag variant="brand">Brand</wa-tag>
@@ -13,12 +37,9 @@ category: Feedback & Status
 <wa-tag variant="danger">Danger</wa-tag>
 ```
 
-## Examples
-
 ### Appearance
 
-Use the `size` attribute to change a tag's visual appearance.
-The default appearance is `filled-outlined`.
+Use the `appearance` attribute to change the tag's visual style. The default is `filled-outlined`.
 
 ```html {.example}
 <div class="wa-stack">
@@ -34,21 +55,18 @@ The default appearance is `filled-outlined`.
     <wa-tag variant="success" appearance="filled">Filled</wa-tag>
     <wa-tag variant="success" appearance="outlined">Outlined</wa-tag>
   </p>
-
   <p>
     <wa-tag variant="neutral" appearance="accent">Accent</wa-tag>
     <wa-tag variant="neutral" appearance="filled-outlined">Filled-Outlined</wa-tag>
     <wa-tag variant="neutral" appearance="filled">Filled</wa-tag>
     <wa-tag variant="neutral" appearance="outlined">Outlined</wa-tag>
   </p>
-
   <p>
     <wa-tag variant="warning" appearance="accent">Accent</wa-tag>
     <wa-tag variant="warning" appearance="filled-outlined">Filled-Outlined</wa-tag>
     <wa-tag variant="warning" appearance="filled">Filled</wa-tag>
     <wa-tag variant="warning" appearance="outlined">Outlined</wa-tag>
   </p>
-
   <p>
     <wa-tag variant="danger" appearance="accent">Accent</wa-tag>
     <wa-tag variant="danger" appearance="filled-outlined">Filled-Outlined</wa-tag>
@@ -58,35 +76,41 @@ The default appearance is `filled-outlined`.
 </div>
 ```
 
-### Sizes
+### Size
 
 Use the `size` attribute to change a tag's size.
 
 ```html {.example}
-<wa-tag size="small">Small</wa-tag>
-<wa-tag size="medium">Medium</wa-tag>
-<wa-tag size="large">Large</wa-tag>
+<wa-tag size="xs">Extra Small</wa-tag>
+<wa-tag size="s">Small</wa-tag>
+<wa-tag size="m">Medium</wa-tag>
+<wa-tag size="l">Large</wa-tag>
+<wa-tag size="xl">Extra Large</wa-tag>
 ```
 
 ### Pill
 
-Use the `pill` attribute to give tabs rounded edges.
+Use the `pill` attribute to give tags rounded edges.
 
 ```html {.example}
-<wa-tag size="small" pill>Small</wa-tag>
-<wa-tag size="medium" pill>Medium</wa-tag>
-<wa-tag size="large" pill>Large</wa-tag>
+<wa-tag size="xs" pill>Extra Small</wa-tag>
+<wa-tag size="s" pill>Small</wa-tag>
+<wa-tag size="m" pill>Medium</wa-tag>
+<wa-tag size="l" pill>Large</wa-tag>
+<wa-tag size="xl" pill>Extra Large</wa-tag>
 ```
 
 ### Removable
 
-Use the `with-remove` attribute to add a remove button to the tag.
+Use the `with-remove` attribute to add a remove button to the tag. The button carries a built-in `Remove` label for assistive technology, and activating it emits the `wa-remove` event so you can handle the removal.
 
 ```html {.example}
 <div class="tags-removable">
-  <wa-tag size="small" with-remove>Small</wa-tag>
-  <wa-tag size="medium" with-remove>Medium</wa-tag>
-  <wa-tag size="large" with-remove>Large</wa-tag>
+  <wa-tag size="xs" with-remove>Extra Small</wa-tag>
+  <wa-tag size="s" with-remove>Small</wa-tag>
+  <wa-tag size="m" with-remove>Medium</wa-tag>
+  <wa-tag size="l" with-remove>Large</wa-tag>
+  <wa-tag size="xl" with-remove>Extra Large</wa-tag>
 </div>
 
 <script>

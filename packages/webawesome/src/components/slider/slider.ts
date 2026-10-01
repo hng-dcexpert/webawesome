@@ -1,12 +1,16 @@
 import type { PropertyValues } from 'lit';
-import { html } from 'lit';
+import { html, isServer } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import { activeElements } from '../../internal/active-elements.js';
 import { DraggableElement } from '../../internal/drag.js';
 import { clamp } from '../../internal/math.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { submitOnEnter } from '../../internal/submit-on-enter.js';
 import { SliderValidator } from '../../internal/validators/slider-validator.js';
+import { watch } from '../../internal/watch.js';
 import { WebAwesomeFormAssociatedElement } from '../../internal/webawesome-form-associated-element.js';
 import formControlStyles from '../../styles/component/form-control.styles.js';
 import sizeStyles from '../../styles/component/size.styles.js';
@@ -18,8 +22,8 @@ import styles from './slider.styles.js';
 /**
  * <wa-slider>
  *
- * @summary Ranges allow the user to select a single value within a given range using a slider.
- * @documentation https://webawesome.com/docs/components/range
+ * @summary Sliders let users choose a numeric value within a defined range by dragging a thumb along a track.
+ * @documentation https://webawesome.com/docs/components/slider
  * @status stable
  * @since 2.0
  *
@@ -49,7 +53,7 @@ import styles from './slider.styles.js';
  * @csspart thumb-max - The max value thumb in a range slider.
  * @csspart tooltip - The tooltip, a `<wa-tooltip>` element.
  * @csspart tooltip__tooltip - The tooltip's `tooltip` part.
- * @csspart tooltip__content - The tooltip's `content` part.
+ * @csspart tooltip__body - The tooltip's `body` part.
  * @csspart tooltip__arrow - The tooltip's `arrow` part.
  *
  * @cssstate disabled - Applied when the slider is disabled.
@@ -71,7 +75,7 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
   static css = [sizeStyles, formControlStyles, styles];
 
   static get validators() {
-    return [...super.validators, SliderValidator()];
+    return isServer ? [] : [...super.validators, SliderValidator()];
   }
 
   private draggableTrack: DraggableElement;
@@ -121,15 +125,17 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
   @property({ attribute: 'value', reflect: true, type: Number }) defaultValue: number =
     this.getAttribute('value') == null ? this.minValue : Number(this.getAttribute('value'));
 
-  private _value: number = this.defaultValue;
+  private _value: number | null = null;
 
   /** The current value of the slider, submitted as a name/value pair with form data. */
   get value(): number {
     if (this.valueHasChanged) {
-      return this._value;
+      const val = this._value ?? this.minValue ?? 0;
+      return clamp(val, this.min, this.max);
     }
 
-    return this._value ?? this.defaultValue;
+    const val = this._value ?? this.defaultValue;
+    return clamp(val, this.min, this.max);
   }
 
   @state()
@@ -162,7 +168,12 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
   @property({ reflect: true }) orientation: 'horizontal' | 'vertical' = 'horizontal';
 
   /** The slider's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
 
   /** The starting value from which to draw the slider's fill, which is based on its current value. */
   @property({ attribute: 'indicator-offset', type: Number }) indicatorOffset: number;
@@ -175,9 +186,6 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
 
   /** The granularity the value must adhere to when incrementing and decrementing. */
   @property({ type: Number }) step: number = 1;
-
-  /** Makes the slider a required field. */
-  @property({ type: Boolean, reflect: true }) required = false;
 
   /** Tells the browser to focus the slider when the page loads or a dialog is shown. */
   @property({ type: Boolean }) autofocus: boolean;
@@ -196,12 +204,25 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
   @property({ attribute: 'with-tooltip', type: Boolean }) withTooltip = false;
 
   /**
+   * Only required for SSR. Set to `true` if you're slotting in a `label` element so the server-rendered markup
+   * includes the label before the component hydrates on the client.
+   */
+  @property({ attribute: 'with-label', type: Boolean }) withLabel = false;
+
+  /**
+   * Only required for SSR. Set to `true` if you're slotting in a `hint` element so the server-rendered markup
+   * includes the hint before the component hydrates on the client.
+   */
+  @property({ attribute: 'with-hint', type: Boolean }) withHint = false;
+
+  /**
    * A custom formatting function to apply to the value. This will be shown in the tooltip and announced by screen
    * readers. Must be set with JavaScript. Property only.
    */
   @property({ attribute: false }) valueFormatter: (value: number) => string;
 
-  firstUpdated() {
+  firstUpdated(changedProperties: PropertyValues<this>) {
+    super.firstUpdated(changedProperties);
     // Setup dragging based on range or single thumb mode
     if (this.isRange) {
       // Enable dragging on both thumbs for range slider
@@ -356,42 +377,29 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
     }
   }
 
-  updated(changedProperties: PropertyValues<this>) {
-    // Handle range mode changes
-    if (changedProperties.has('range')) {
-      this.requestUpdate();
-    }
-
+  protected willUpdate(changedProperties: PropertyValues<this>) {
     if (this.isRange) {
-      // Handle min/max values for range mode
-      if (changedProperties.has('minValue') || changedProperties.has('maxValue')) {
-        // Ensure min doesn't exceed max
+      // Clamp min/max values when they change or when bounds change
+      if (
+        changedProperties.has('minValue') ||
+        changedProperties.has('maxValue') ||
+        changedProperties.has('min') ||
+        changedProperties.has('max')
+      ) {
         this.minValue = clamp(this.minValue, this.min, this.maxValue);
         this.maxValue = clamp(this.maxValue, this.minValue, this.max);
-        // Update form value
+      }
+    }
+
+    super.willUpdate(changedProperties);
+  }
+
+  updated(changedProperties: PropertyValues<this>) {
+    if (this.isRange) {
+      // Update form value when range values change
+      if (changedProperties.has('minValue') || changedProperties.has('maxValue')) {
         this.updateFormValue();
       }
-    } else {
-      // Handle value for single thumb mode
-      if (changedProperties.has('value')) {
-        this.value = clamp(this.value, this.min, this.max);
-        this.setValue(String(this.value));
-      }
-    }
-
-    // Handle min/max
-    if (changedProperties.has('min') || changedProperties.has('max')) {
-      if (this.isRange) {
-        this.minValue = clamp(this.minValue, this.min, this.max);
-        this.maxValue = clamp(this.maxValue, this.min, this.max);
-      } else {
-        this.value = clamp(this.value, this.min, this.max);
-      }
-    }
-
-    // Handle disabled
-    if (changedProperties.has('disabled')) {
-      this.customStates.set('disabled', this.disabled);
     }
 
     // Disable dragging when disabled or readonly
@@ -422,8 +430,10 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
       this.minValue = parseFloat(this.getAttribute('min-value') ?? String(this.min));
       this.maxValue = parseFloat(this.getAttribute('max-value') ?? String(this.max));
     } else {
-      this.value = parseFloat(this.getAttribute('value') ?? String(this.min));
+      this._value = null;
+      this.defaultValue = this.defaultValue ?? parseFloat(this.getAttribute('value') ?? String(this.min));
     }
+    this.valueHasChanged = false;
     this.hasInteracted = false;
     super.formResetCallback();
   }
@@ -713,14 +723,20 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
   }
 
   /** Updates the form value submission for range sliders */
-  private updateFormValue() {
+  /**
+   * @internal
+   */
+  protected updateFormValue(value?: unknown) {
     if (this.isRange) {
       // Submit both values using FormData for range sliders
       const formData = new FormData();
       formData.append(this.name || '', String(this.minValue));
       formData.append(this.name || '', String(this.maxValue));
-      this.setValue(formData);
+      this.setValue(formData, formData);
+      return;
     }
+
+    super.updateFormValue(value);
   }
 
   /** Sets focus to the slider. */
@@ -735,10 +751,15 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
   /** Removes focus from the slider. */
   public blur() {
     if (this.isRange) {
-      if (document.activeElement === this.thumbMin) {
-        this.thumbMin.blur();
-      } else if (document.activeElement === this.thumbMax) {
-        this.thumbMax.blur();
+      // Support range in shadow roots
+      for (const activeElement of activeElements()) {
+        if (activeElement === this.thumbMin) {
+          this.thumbMin.blur();
+          break;
+        } else if (activeElement === this.thumbMax) {
+          this.thumbMax.blur();
+          break;
+        }
       }
     } else {
       this.slider.blur();
@@ -778,16 +799,21 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
   }
 
   render() {
-    const hasLabelSlot = this.hasSlotController.test('label');
-    const hasHintSlot = this.hasSlotController.test('hint');
+    const hasLabelSlot = this.hasSlotController.test('label', 'withLabel');
+    const hasHintSlot = this.hasSlotController.test('hint', 'withHint');
     const hasLabel = this.label ? true : !!hasLabelSlot;
     const hasHint = this.hint ? true : !!hasHintSlot;
     const hasReference = this.hasSlotController.test('reference');
 
     const sliderClasses = classMap({
-      small: this.size === 'small',
-      medium: this.size === 'medium',
-      large: this.size === 'large',
+      xs: this.size === 'xs',
+      s: this.size === 's' || this.size === 'small',
+      m: this.size === 'm' || this.size === 'medium',
+      l: this.size === 'l' || this.size === 'large',
+      xl: this.size === 'xl',
+      small: this.size === 'small' || this.size === 's',
+      medium: this.size === 'medium' || this.size === 'm',
+      large: this.size === 'large' || this.size === 'l',
       horizontal: this.orientation === 'horizontal',
       vertical: this.orientation === 'vertical',
       disabled: this.disabled,
@@ -807,7 +833,7 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
         id="label"
         part="label"
         for=${this.isRange ? 'thumb-min' : 'text-box'}
-        class=${classMap({ vh: !hasLabel })}
+        class=${classMap({ vh: !hasLabel, 'has-label': hasLabel })}
         @pointerdown=${this.handleLabelPointerDown}
       >
         <slot name="label">${this.label}</slot>
@@ -829,7 +855,10 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
     const markersTemplate = this.withMarkers
       ? html`
           <div id="markers" part="markers">
-            ${markers.map(marker => html`<span part="marker" class="marker" style="--position: ${marker}%"></span>`)}
+            ${markers.map(
+              marker =>
+                html`<span part="marker" class="marker" style=${styleMap({ '--position': `${marker}%` })}></span>`,
+            )}
           </div>
         `
       : '';
@@ -851,6 +880,7 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
               part="tooltip"
               exportparts="
                 base:tooltip__base,
+                tooltip:tooltip__tooltip,
                 body:tooltip__body,
                 arrow:tooltip__arrow
               "
@@ -882,10 +912,10 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
             <div
               id="indicator"
               part="indicator"
-              style="--start: ${Math.min(minThumbPosition, maxThumbPosition)}%; --end: ${Math.max(
-                minThumbPosition,
-                maxThumbPosition,
-              )}%"
+              style=${styleMap({
+                '--start': `${Math.min(minThumbPosition, maxThumbPosition)}%`,
+                '--end': `${Math.max(minThumbPosition, maxThumbPosition)}%`,
+              })}
             ></div>
 
             ${markersTemplate}
@@ -893,7 +923,7 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
             <span
               id="thumb-min"
               part="thumb thumb-min"
-              style="--position: ${minThumbPosition}%"
+              style=${styleMap({ '--position': `${minThumbPosition}%` })}
               role="slider"
               aria-valuemin=${this.min}
               aria-valuenow=${this.minValue}
@@ -914,7 +944,7 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
             <span
               id="thumb-max"
               part="thumb thumb-max"
-              style="--position: ${maxThumbPosition}%"
+              style=${styleMap({ '--position': `${maxThumbPosition}%` })}
               role="slider"
               aria-valuemin=${this.min}
               aria-valuenow=${this.maxValue}
@@ -975,11 +1005,11 @@ export default class WaSlider extends WebAwesomeFormAssociatedElement {
             <div
               id="indicator"
               part="indicator"
-              style="--start: ${indicatorOffsetPosition}%; --end: ${thumbPosition}%"
+              style=${styleMap({ '--start': `${indicatorOffsetPosition}%`, '--end': `${thumbPosition}%` })}
             ></div>
 
             ${markersTemplate}
-            <span id="thumb" part="thumb" style="--position: ${thumbPosition}%"></span>
+            <span id="thumb" part="thumb" style=${styleMap({ '--position': `${thumbPosition}%` })}></span>
           </div>
 
           ${referencesTemplate} ${hint}

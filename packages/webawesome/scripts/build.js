@@ -7,29 +7,38 @@ import { replace } from 'esbuild-plugin-replace';
 import { mkdir, readFile } from 'fs/promises';
 import getPort, { portNumbers } from 'get-port';
 import { globby } from 'globby';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { dirname, extname, join, posix, relative } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import open from 'open';
 import ora from 'ora';
 import copy from 'recursive-copy';
 import { SimulateWebAwesomeApp } from '../docs/_utils/simulate-webawesome-app.js';
 import { generateDocs } from './docs.js';
-import { getCdnDir, getDistDir, getDocsDir, getRootDir, getSiteDir } from './utils.js';
+import { generateLlmsTxtFile } from './llms.js';
+import { formatError, getCdnDir, getDistDir, getDocsDir, getRootDir, getSiteDir } from './utils.js';
+
+// @ts-expect-error used for SSR cookies
+import cookieParser from 'cookie-parser';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+let litRenderString = str => str;
 
 const currentYear = new Date().getFullYear();
-const spinner = ora({ text: 'Web Awesome', color: 'cyan' }).start();
-const getPackageData = async () => JSON.parse(await readFile(join(getRootDir(), 'package.json'), 'utf-8'));
-const getVersion = async () => JSON.stringify((await getPackageData()).version.toString());
+const spinner = ora();
 let buildContexts = {
   bundledContext: {},
   unbundledContext: {},
 };
 
 const debugPerf = process.env.DEBUG_PERFORMANCE === '1';
-
 const isDeveloping = process.argv.includes('--develop');
+
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
 
 /**
  * @typedef {Object} BuildOptions
@@ -37,12 +46,21 @@ const isDeveloping = process.argv.includes('--develop');
  * @property {Array<string>} [watchedDocsDirectories]
  * @property {(eventName: "change" | "add" | "unlink", filePath: string) => unknown} [beforeWatchEvent]
  * @property {(eventName: "change" | "add" | "unlink", filePath: string) => unknown} [afterWatchEvent]
+ * @property {(dir: string) => void} [transformTypes]
  */
 
 /**
  * @param {BuildOptions} [options={}]
  */
 export async function build(options = {}) {
+  // packageData and version  need to be set within the `build()` function because this file gets imported by the app, which may not have generated its bundled directory yet, so this needs to be "lazily" evaluated.
+  const packageData = JSON.parse(await readFile(join(getRootDir(), 'package.json'), 'utf-8'));
+  const version = packageData.version;
+  console.log(`${chalk.hex('#ef6741')('🦊 Web Awesome')} ${chalk.cyan(`v${version}\n`)}`);
+  if (isDeveloping) {
+    spinner.info('Development mode');
+  }
+
   if (!options.watchedSrcDirectories) {
     options.watchedSrcDirectories = ['src'];
   }
@@ -51,6 +69,8 @@ export async function build(options = {}) {
     options.watchedDocsDirectories = [getDocsDir()];
   }
 
+  const transformTypes = options.transformTypes || (_dir => {});
+
   /**
    * Runs the full build.
    */
@@ -58,7 +78,14 @@ export async function build(options = {}) {
     const start = Date.now();
 
     try {
-      const steps = [cleanup, generateManifest, generateReactWrappers, generateTypes, generateStyles];
+      const steps = [
+        cleanup,
+        generateManifest,
+        generateAllComponentFile,
+        generateReactWrappers,
+        generateTypes,
+        generateStyles,
+      ];
 
       for (const step of steps) {
         if (debugPerf) {
@@ -77,8 +104,22 @@ export async function build(options = {}) {
       await generateBundle();
       await generateDocs({ spinner });
 
+      // Generate llms.txt (needs CEM, runs before docs)
+
+      if (process.env.SKIP_SLOW_STEPS === 'true') {
+        spinner.info('Skipping "llms.txt" generation');
+      } else {
+        spinner.start('Generating "llms.txt"');
+        await generateLlmsTxtFile();
+        spinner.succeed();
+      }
+
       const time = (Date.now() - start) / 1000 + 's';
       spinner.succeed(`The build is complete ${chalk.gray(`(finished in ${time})`)}`);
+
+      // update the lit-render-string in case it changed
+      const mod = await import(path.join(getDistDir(), `ssr/render-string.js?cachebust=${new Date().getTime()}`));
+      litRenderString = mod.renderString;
     } catch (err) {
       spinner.fail();
       console.log(chalk.red(`\n${err}`));
@@ -114,7 +155,6 @@ export async function build(options = {}) {
     }
 
     spinner.succeed();
-
     return Promise.resolve();
   }
 
@@ -133,6 +173,29 @@ export async function build(options = {}) {
     try {
       // need to run  make-react from this directories.
       execSync(`node ${join(__dirname, 'make-react.js')} --outdir "${getCdnDir()}"`, { stdio: 'inherit' });
+    } catch (error) {
+      console.error(`\n\n${error.message}`);
+
+      if (!isDeveloping) {
+        process.exit(1);
+      }
+    }
+    spinner.succeed();
+
+    return Promise.resolve();
+  }
+
+  function generateAllComponentFile() {
+    if (process.env.SKIP_SLOW_STEPS === 'true') {
+      spinner.info('Skipping "ssr/all.js" file generation.');
+      return Promise.resolve();
+    }
+
+    spinner.start('Generating "ssr/all.js" file');
+
+    try {
+      // need to run make-all from this directory.
+      execSync(`node ${join(__dirname, 'make-all.js')} --outdir "${getCdnDir()}"`, { stdio: 'inherit' });
     } catch (error) {
       console.error(`\n\n${error.message}`);
 
@@ -175,7 +238,9 @@ export async function build(options = {}) {
       if (process.env.ROOT_DIR) {
         process.chdir(process.env.ROOT_DIR);
       }
+      const cdnDir = getCdnDir();
       execSync(`tsc --project ./tsconfig.prod.json --outdir "${getCdnDir()}"`, { stdio: 'inherit' });
+      transformTypes(cdnDir);
       process.chdir(cwd);
     } catch (error) {
       process.chdir(cwd);
@@ -200,6 +265,7 @@ export async function build(options = {}) {
     const rootDir = process.env.ROOT_DIR || '.';
     // Bundled config
     const config = {
+      conditions: isDeveloping ? ['development'] : [],
       format: 'esm',
       target: 'es2020',
       entryPoints: [
@@ -215,6 +281,12 @@ export async function build(options = {}) {
         ...(await globby(posix.join(rootDir, 'src/components/**/!(*.(style|test)).ts'))),
         // Translations
         ...(await globby(posix.join(rootDir, 'src/translations/**/*.ts'))),
+        // Utilities
+        ...(await globby(posix.join(rootDir, 'src/utilities/**/*.ts'))),
+        // Events
+        ...(await globby(posix.join(rootDir, 'src/events/**/*.ts'))),
+        // TODO: Should `src/internal` be included?
+        ...(await globby(posix.join(rootDir, 'src/ssr/**/*.ts'))),
         // React wrappers
         ...(await globby(posix.join(rootDir, 'src/react/**/*.ts'))),
       ],
@@ -229,7 +301,7 @@ export async function build(options = {}) {
       banner: {
         js: `/*! Copyright ${currentYear} Fonticons, Inc. - https://webawesome.com/license */`,
       },
-      plugins: [replace({ __WEBAWESOME_VERSION__: await getVersion() })],
+      plugins: [replace({ __WEBAWESOME_VERSION__: version })],
     };
 
     const unbundledConfig = {
@@ -304,9 +376,12 @@ export async function build(options = {}) {
       spinner.succeed();
     };
 
+    await initLitSsr();
+
     // Launch browser sync
     bs.init(
       {
+        open: false,
         startPath: '/',
         port,
         logLevel: 'silent',
@@ -322,11 +397,9 @@ export async function build(options = {}) {
           },
         },
         middleware: [
+          cookieParser(),
           function simulateWebawesomeApp(req, res, next) {
             // Accumulator for strings so we can pass them through nunjucks a second time similar to how the webawesome-app
-            // will be running nunjucks twice.
-            const finalString = [];
-            const encoding = 'utf-8';
 
             if (!next) {
               return;
@@ -344,6 +417,10 @@ export async function build(options = {}) {
               return;
             }
 
+            // will be running nunjucks twice.
+            const finalString = [];
+            const encoding = 'utf-8';
+
             const _write = res.write;
 
             res.write = function (chunk, encoding) {
@@ -353,7 +430,19 @@ export async function build(options = {}) {
 
             const _end = res.end;
             res.end = function (...args) {
-              const transformedStr = SimulateWebAwesomeApp(finalString.join(''));
+              const ssr = req?.query?.ssr || req?.cookies?.webawesome_ssr === 'true';
+
+              let transformedStr = SimulateWebAwesomeApp(finalString.join(''), {
+                isDev: process.env.NODE_ENV === 'development',
+                NODE_ENV: process.env.NODE_ENV,
+                ssr,
+                req,
+              });
+
+              if (ssr) {
+                transformedStr = litRenderString(transformedStr);
+              }
+
               _write.call(res, transformedStr, encoding);
               _end.call(res, ...args);
             };
@@ -386,6 +475,7 @@ export async function build(options = {}) {
       () => {
         spinner.succeed();
         console.log(`\nThe dev server is running at ${chalk.cyan(url)}\n`);
+        open(url);
       },
     );
 
@@ -435,8 +525,10 @@ export async function build(options = {}) {
             }
 
             // copy everything to unbundled before we generate bundles.
+            // this may cause watcher events to break. if things are broken with file watching, comment this out.
             await copy(getCdnDir(), getDistDir(), { overwrite: true });
             await regenerateBundle();
+            await initLitSsr(); // Reload components SSR definitions.
 
             // This needs to be outside of "isComponent" check because SSR needs to run on CSS files too.
             await generateDocs({ spinner });
@@ -447,7 +539,7 @@ export async function build(options = {}) {
 
             reload();
           } catch (err) {
-            console.error(chalk.red(err));
+            console.error(chalk.red(formatError(err)));
 
             if (!isDeveloping) {
               process.exit(1);
@@ -531,6 +623,23 @@ function isRunAsMain() {
   }
 
   return false;
+}
+
+async function loadComponents() {
+  const baseDir = path.join(getDistDir(), 'components');
+  await Promise.allSettled(
+    fs.readdirSync(baseDir, { recursive: false, encoding: 'utf8' }).map(dir => {
+      const component = path.basename(dir);
+
+      const modulePath = path.join(baseDir, component, component + '.js');
+
+      return import(modulePath + `?cachebust=${new Date().getTime()}`);
+    }),
+  );
+}
+
+export async function initLitSsr() {
+  await loadComponents();
 }
 
 if (isRunAsMain()) {

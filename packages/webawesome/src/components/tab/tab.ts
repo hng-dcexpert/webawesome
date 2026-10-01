@@ -8,14 +8,15 @@ import styles from './tab.styles.js';
 let id = 0;
 
 /**
- * @summary Tabs are used inside [tab groups](/docs/components/tab-group) to represent and activate [tab panels](/docs/components/tab-panel).
+ * @summary Tabs label and activate an individual panel inside a tab group.
  * @documentation https://webawesome.com/docs/components/tab
  * @status stable
  * @since 2.0
  *
  * @slot - The tab's label.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `tab` part instead.
+ * @csspart tab - The component's outer wrapper.
  */
 @customElement('wa-tab')
 export default class WaTab extends WebAwesomeElement {
@@ -41,13 +42,13 @@ export default class WaTab extends WebAwesomeElement {
    */
   @property({ type: Number, reflect: true }) tabIndex = 0;
 
-  connectedCallback() {
-    // Auto-slot into nav slot
-    this.slot ||= 'nav';
+  /**
+   * @internal
+   * Need to wrap in @property({reflect: true}) otherwise it will not SSR properly.
+   */
+  @property({ reflect: true }) slot = 'nav';
 
-    super.connectedCallback();
-    this.setAttribute('role', 'tab');
-  }
+  @property({ reflect: true }) role = 'tab';
 
   @watch('active')
   handleActiveChange() {
@@ -71,7 +72,7 @@ export default class WaTab extends WebAwesomeElement {
 
     return html`
       <div
-        part="base"
+        part="base tab"
         class=${classMap({
           tab: true,
           'tab-active': this.active,

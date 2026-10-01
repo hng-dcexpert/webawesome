@@ -2,7 +2,7 @@
 title: Visual Tests
 description: A page to visually test component styles against native styles.
 layout: page
-wide: true
+hasProseContent: false
 ---
 
 <style>
@@ -91,7 +91,7 @@ Native style tests ensure that supported native elements and utilities look the 
 
 ## Size
 
-Size tests ensure that both the `size` attribute and `.wa-size-[s|m|l]` classes have identical results for components that support them. Developers should be able to use both of these interchangeably on components to get the intended size.
+Size tests ensure that both the `size` attribute and `.wa-size-[xs|s|m|l|xl]` classes have identical results for components that support them. Developers should be able to use both of these interchangeably on components to get the intended size.
 
 {% include 'visual-tests/size.njk' %}
 

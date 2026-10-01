@@ -7,7 +7,8 @@ import '../icon/icon.js';
 import styles from './avatar.styles.js';
 
 /**
- * @summary Avatars are used to represent a person or object.
+ * @summary Avatars represent a person or object with an image, initials, or icon. Use them in lists, comments, and
+ *  profiles to give users visual context at a glance.
  * @documentation https://webawesome.com/docs/components/avatar
  * @status stable
  * @since 2.0
@@ -55,6 +56,19 @@ export default class WaAvatar extends WebAwesomeElement {
   private handleImageLoadError() {
     this.hasError = true;
     this.dispatchEvent(new WaErrorEvent());
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.didSSR) {
+      const img = this.shadowRoot?.querySelector?.('img');
+      if (img && img.complete && img.naturalWidth <= 0) {
+        // Assume the image errored
+        this.updateComplete.then(() => {
+          this.handleImageLoadError();
+        });
+      }
+    }
   }
 
   render() {

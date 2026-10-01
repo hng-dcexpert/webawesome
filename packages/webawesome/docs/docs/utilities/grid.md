@@ -3,22 +3,35 @@ title: Grid
 description: 'Use the `wa-grid` class to arrange elements into rows and columns that automatically adapt to the available space.'
 layout: docs
 tags: layoutUtilities
+synonyms:
+  - columns
+  - layout grid
+  - css grid
+use-cases:
+  - responsive grid
+  - card grid
+  - auto grid
+  - masonry
 ---
 
 <style>
   :is(.wa-flank, .wa-grid, .wa-stack) > [class*='wa-grid']:has(div:empty) {
-    border: var(--wa-border-width-s) dashed var(--wa-color-neutral-border-normal);
-    border-radius: var(--wa-border-radius-l);
-    padding: var(--wa-space-s);
+    border: var(--layout-example-border);
+    border-radius: var(--layout-example-border-radius);
+    padding: var(--layout-example-padding);
   }
 
   [class*='wa-grid'] div:empty {
-    background-color: var(--wa-color-indigo-60);
-    border-radius: var(--wa-border-radius-m);
+    background-color: var(--layout-example-element-background);
+    border-radius: var(--layout-example-element-border-radius);
     min-block-size: 4rem;
     min-inline-size: 4rem;
   }
 </style>
+
+A grid places its children in evenly-sized columns that shrink, grow, and reflow as the container resizes, without any breakpoints to manage. Drop any number of items into `wa-grid` and the utility figures out how many fit on each row based on the container's width and the minimum column size you've asked for. It's the quickest way to build card galleries, product listings, dashboards, and any content that should adapt from one column on a phone to several on a desktop.
+
+Set `--min-column-size` to change the threshold at which items start to wrap, pair `wa-grid` with a [`wa-gap-*`](/docs/utilities/gap) class to adjust the spacing between cells, or add `wa-span-grid` to an individual item to make it span every column.
 
 ```html {.example}
 <div class="wa-grid">
@@ -94,7 +107,7 @@ Grids work especially well for card lists and content designed for browsing.
   <wa-card>
     <div class="wa-flank">
       <wa-avatar shape="rounded">
-        <wa-icon slot="icon" name="brain-circuit"></wa-icon>
+        <wa-icon slot="icon" name="microchip"></wa-icon>
       </wa-avatar>
       <div class="wa-stack wa-gap-3xs">
         <span class="wa-caption-xs">Minds Freed</span>
@@ -114,7 +127,7 @@ Grids work especially well for card lists and content designed for browsing.
         <span class="wa-caption-xs">Agents Discovered</span>
         <span class="wa-cluster wa-gap-xs">
           <span class="wa-heading-2xl">3</span>
-          <wa-badge variant="neutral">±0%&nbsp;<wa-icon name="wave-triangle"></wa-icon></wa-badge>
+          <wa-badge variant="neutral">±0%&nbsp;<wa-icon name="minus"></wa-icon></wa-badge>
         </span>
       </div>
     </div>
@@ -142,9 +155,9 @@ Grids work especially well for card lists and content designed for browsing.
 </style>
 ```
 
-## Sizing
+## Size
 
-By default, grid items will wrap when the grid's column size is less than `20ch`, but you can set a custom minimum column size using the `--min-column-size` property.
+By default, grid items will wrap when the grid's column size is less than `20ch`, but you can set a custom minimum column size using the `--min-column-size` custom property.
 
 ```html {.example}
 <div class="wa-stack">
@@ -169,18 +182,7 @@ By default, grid items will wrap when the grid's column size is less than `20ch`
 
 ## Gap
 
-By default, the gap between grid items uses `--wa-space-m` from your theme. You can add any of the following [`wa-gap-*`](/docs/utilities/gap) classes to an element with `wa-grid` to specify the gap between items:
-
-- `wa-gap-0`
-- `wa-gap-3xs`
-- `wa-gap-2xs`
-- `wa-gap-xs`
-- `wa-gap-s`
-- `wa-gap-m`
-- `wa-gap-l`
-- `wa-gap-xl`
-- `wa-gap-2xl`
-- `wa-gap-3xl`
+By default, the gap between grid items uses `--wa-space-m` from your theme. Add any [`wa-gap-*`](/docs/utilities/gap) class to change the spacing between cells.
 
 ```html {.example}
 <div class="wa-stack">

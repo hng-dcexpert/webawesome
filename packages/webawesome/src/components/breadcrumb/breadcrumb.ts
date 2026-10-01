@@ -7,7 +7,8 @@ import '../icon/icon.js';
 import styles from './breadcrumb.styles.js';
 
 /**
- * @summary Breadcrumbs provide a group of links so users can easily navigate a website's hierarchy.
+ * @summary Breadcrumbs display a trail of links that show users where they are in a site's hierarchy. They help users
+ *  understand the current location and navigate back to parent pages.
  * @documentation https://webawesome.com/docs/components/breadcrumb
  * @status stable
  * @since 2.0
@@ -17,7 +18,8 @@ import styles from './breadcrumb.styles.js';
  *
  * @dependency wa-icon
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `breadcrumb` part instead.
+ * @csspart breadcrumb - The component's outer wrapper.
  */
 @customElement('wa-breadcrumb')
 export default class WaBreadcrumb extends WebAwesomeElement {
@@ -85,7 +87,7 @@ export default class WaBreadcrumb extends WebAwesomeElement {
     }
 
     return html`
-      <nav part="base" class="breadcrumb" aria-label=${this.label}>
+      <nav part="base breadcrumb" class="breadcrumb" aria-label=${this.label}>
         <slot @slotchange=${this.handleSlotChange}></slot>
       </nav>
 

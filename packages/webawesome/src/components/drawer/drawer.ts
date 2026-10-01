@@ -1,4 +1,4 @@
-import { html, isServer } from 'lit';
+import { html, isServer, type PropertyValues } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { WaAfterHideEvent } from '../../events/after-hide.js';
@@ -6,7 +6,9 @@ import { WaAfterShowEvent } from '../../events/after-show.js';
 import { WaHideEvent } from '../../events/hide.js';
 import { WaShowEvent } from '../../events/show.js';
 import { animateWithClass } from '../../internal/animate.js';
+import { isTopDismissible, registerDismissible, unregisterDismissible } from '../../internal/dismissible-stack.js';
 import { parseSpaceDelimitedTokens } from '../../internal/parse.js';
+import { RenderedWatcher } from '../../internal/rendered-watcher.js';
 import { lockBodyScrolling, unlockBodyScrolling } from '../../internal/scroll.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { watch } from '../../internal/watch.js';
@@ -16,7 +18,8 @@ import '../button/button.js';
 import styles from './drawer.styles.js';
 
 /**
- * @summary Drawers slide in from a container to expose additional options and information.
+ * @summary Drawers slide in from the edge of a container to expose additional options and information without
+ *  navigating away. Useful for navigation menus, filters, and secondary content.
  * @documentation https://webawesome.com/docs/components/drawer
  * @status stable
  * @since 2.0
@@ -50,8 +53,9 @@ import styles from './drawer.styles.js';
  * @cssproperty --spacing - The amount of space around and between the drawer's content.
  * @cssproperty --size - The preferred size of the drawer. This will be applied to the drawer's width or height
  *   depending on its `placement`. Note that the drawer will shrink to accommodate smaller screens.
- * @cssproperty [--show-duration=200ms] - The animation duration when showing the drawer.
- * @cssproperty [--hide-duration=200ms] - The animation duration when hiding the drawer.
+ * @cssproperty [--backdrop-filter=none] - A filter to apply to the backdrop behind the drawer.
+ * @cssproperty [--show-duration=var(--wa-transition-normal)] - The animation duration when showing the drawer.
+ * @cssproperty [--hide-duration=var(--wa-transition-normal)] - The animation duration when hiding the drawer.
  *
  * @property modal - Exposes the internal modal utility that controls focus trapping. To temporarily disable focus
  *   trapping and allow third-party modals spawned from an active Shoelace modal, call `modal.activateExternal()` when
@@ -63,6 +67,7 @@ export default class WaDrawer extends WebAwesomeElement {
 
   private readonly localize = new LocalizeController(this);
   private readonly hasSlotController = new HasSlotController(this, 'footer', 'header-actions', 'label');
+  private readonly renderedWatcher = new RenderedWatcher(this, isRendered => this.handleRenderedChange(isRendered));
   private originalTrigger: HTMLElement | null;
 
   @query('.drawer') drawer: HTMLDialogElement;
@@ -83,21 +88,27 @@ export default class WaDrawer extends WebAwesomeElement {
   @property({ attribute: 'without-header', type: Boolean, reflect: true }) withoutHeader = false;
 
   /** When enabled, the drawer will be closed when the user clicks outside of it. */
-  @property({ attribute: 'light-dismiss', type: Boolean }) lightDismiss = true;
+  @property({ attribute: 'light-dismiss', type: Boolean }) lightDismiss = false;
 
-  firstUpdated() {
-    if (isServer) {
-      return;
-    }
+  /**
+   * Only required for SSR. Set to `true` if you're slotting in a `footer` element so the server-rendered markup
+   * includes the footer before the component hydrates on the client.
+   */
+  @property({ attribute: 'with-footer', type: Boolean }) withFooter = false;
+
+  firstUpdated(changedProperties: PropertyValues<typeof this>) {
+    super.firstUpdated(changedProperties);
     if (this.open) {
       this.addOpenListeners();
       this.drawer.showModal();
       lockBodyScrolling(this);
+      this.renderedWatcher.start(this.drawer);
     }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.renderedWatcher.stop();
     unlockBodyScrolling(this);
     this.removeOpenListeners();
   }
@@ -120,6 +131,7 @@ export default class WaDrawer extends WebAwesomeElement {
     this.open = false;
     this.drawer.close();
     unlockBodyScrolling(this);
+    this.renderedWatcher.stop();
 
     // Restore focus to the original trigger
     const trigger = this.originalTrigger;
@@ -132,16 +144,18 @@ export default class WaDrawer extends WebAwesomeElement {
 
   private addOpenListeners() {
     document.addEventListener('keydown', this.handleDocumentKeyDown);
+    registerDismissible(this);
   }
 
   private removeOpenListeners() {
     document.removeEventListener('keydown', this.handleDocumentKeyDown);
+    unregisterDismissible(this);
   }
 
   private handleDialogCancel(event: Event) {
     event.preventDefault();
 
-    if (!this.drawer.classList.contains('hide') && event.target === this.drawer) {
+    if (!this.drawer.classList.contains('hide') && event.target === this.drawer && isTopDismissible(this)) {
       this.requestClose(this.drawer);
     }
   }
@@ -169,12 +183,35 @@ export default class WaDrawer extends WebAwesomeElement {
   }
 
   private handleDocumentKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && this.open) {
+    if (event.key === 'Escape' && this.open && isTopDismissible(this)) {
       event.preventDefault();
       event.stopPropagation();
       this.requestClose(this.drawer);
     }
   };
+
+  /**
+   * Suspends the modal when third-party CSS (e.g. cookie banner blockers) hides an open drawer, so the page isn't
+   * left scroll locked and inert. "open" stays true so the modal resumes if the drawer is rendered again.
+   */
+  private handleRenderedChange(isRendered: boolean) {
+    if (!this.open) {
+      this.renderedWatcher.stop();
+      return;
+    }
+
+    if (!isRendered && this.drawer.open) {
+      // Suspend the modal while hidden so the page stays scrollable and interactive
+      this.removeOpenListeners();
+      this.drawer.close();
+      unlockBodyScrolling(this);
+    } else if (isRendered && !this.drawer.open) {
+      // Resume the modal now that the drawer is rendered again
+      this.addOpenListeners();
+      this.drawer.showModal();
+      lockBodyScrolling(this);
+    }
+  }
 
   @watch('open', { waitUntilFirstUpdate: true })
   handleOpenChange() {
@@ -184,6 +221,9 @@ export default class WaDrawer extends WebAwesomeElement {
     } else if (this.drawer.open) {
       this.open = true;
       this.requestClose(this.drawer);
+    } else if (!this.open) {
+      // Closed programmatically while the modal was suspended (see handleRenderedChange)
+      this.renderedWatcher.stop();
     }
   }
 
@@ -204,6 +244,7 @@ export default class WaDrawer extends WebAwesomeElement {
     this.drawer.showModal();
 
     lockBodyScrolling(this);
+    this.renderedWatcher.start(this.drawer);
 
     // Set focus on autocomplete if it exists
     requestAnimationFrame(() => {
@@ -222,7 +263,7 @@ export default class WaDrawer extends WebAwesomeElement {
 
   render() {
     const hasHeader = !this.withoutHeader;
-    const hasFooter = this.hasSlotController.test('footer');
+    const hasFooter = this.hasSlotController.test('footer', 'withFooter');
 
     return html`
       <dialog
@@ -241,7 +282,7 @@ export default class WaDrawer extends WebAwesomeElement {
       >
         ${hasHeader
           ? html`
-              <header part="header" class="header">
+              <div part="header" class="header">
                 <h2 part="title" class="title" id="title">
                   <!-- If there's no label, use an invisible character to prevent the header from collapsing -->
                   <slot name="label"> ${this.label.length > 0 ? this.label : String.fromCharCode(8203)} </slot>
@@ -263,49 +304,49 @@ export default class WaDrawer extends WebAwesomeElement {
                     ></wa-icon>
                   </wa-button>
                 </div>
-              </header>
+              </div>
             `
           : ''}
 
         <div part="body" class="body"><slot></slot></div>
 
-        ${hasFooter
-          ? html`
-              <footer part="footer" class="footer">
-                <slot name="footer"></slot>
-              </footer>
-            `
-          : ''}
+        <div part="footer" class="footer" ?hidden=${!hasFooter}>
+          <slot name="footer"></slot>
+        </div>
       </dialog>
     `;
   }
 }
 
-//
-// Watch for data-drawer="open *" clicks
-//
-document.addEventListener('click', (event: MouseEvent) => {
-  const drawerAttrEl = (event.target as Element).closest('[data-drawer]');
+if (!isServer) {
+  //
+  // Watch for data-drawer="open *" clicks
+  //
+  document.addEventListener('click', (event: MouseEvent) => {
+    const drawerAttrEl = (event.target as Element).closest('[data-drawer]');
 
-  if (drawerAttrEl instanceof Element) {
-    const [command, id] = parseSpaceDelimitedTokens(drawerAttrEl.getAttribute('data-drawer') || '');
+    if (drawerAttrEl instanceof Element) {
+      const [command, id] = parseSpaceDelimitedTokens(drawerAttrEl.getAttribute('data-drawer') || '');
 
-    if (command === 'open' && id?.length) {
-      const doc = drawerAttrEl.getRootNode() as Document | ShadowRoot;
-      const drawer = doc.getElementById(id) as WaDrawer;
+      if (command === 'open' && id?.length) {
+        const doc = drawerAttrEl.getRootNode() as Document | ShadowRoot;
+        const drawer = doc.getElementById(id) as WaDrawer;
 
-      if (drawer?.localName === 'wa-drawer') {
-        drawer.open = true;
-      } else {
-        console.warn(`A drawer with an ID of "${id}" could not be found in this document.`);
+        if (drawer?.localName === 'wa-drawer') {
+          drawer.open = true;
+        } else {
+          console.warn(`A drawer with an ID of "${id}" could not be found in this document.`);
+        }
       }
     }
-  }
-});
+  });
 
-if (!isServer) {
+  //
   // Ugly, but it fixes light dismiss in Safari: https://bugs.webkit.org/show_bug.cgi?id=267688
-  document.body.addEventListener('pointerdown', () => {
+  //
+  // [Mar 27, 2026] - This bug was fixed in Safari 18.3 beta so this can be removed in a year or so.
+  //
+  document.addEventListener('pointerdown', () => {
     /* empty */
   });
 }

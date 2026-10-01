@@ -38,6 +38,12 @@ export default css`
     transition-timing-function: var(--wa-transition-easing);
   }
 
+  :host([did-ssr]:not(:defined)) .switch {
+    transition-property: unset;
+    transition-duration: unset;
+    transition-timing-function: unset;
+  }
+
   .switch .thumb {
     aspect-ratio: 1 / 1;
     width: var(--thumb-size);
@@ -46,6 +52,9 @@ export default css`
     border-radius: 50%;
     translate: calc((var(--width) - var(--height)) / -2);
     transition: inherit;
+  }
+  .switch .thumb:dir(rtl) {
+    translate: calc((var(--width) - var(--height)) / 2);
   }
 
   .input {
@@ -57,7 +66,7 @@ export default css`
   }
 
   /* Focus */
-  label:not(.disabled) .input:focus-visible ~ .switch .thumb {
+  label:not(.disabled) .input:focus-visible ~ [part~='control'] {
     outline: var(--wa-focus-ring);
     outline-offset: var(--wa-focus-ring-offset);
   }
@@ -71,6 +80,9 @@ export default css`
   .checked .switch .thumb {
     background-color: var(--wa-color-surface-default);
     translate: calc((var(--width) - var(--height)) / 2);
+  }
+  .checked .switch .thumb:dir(rtl) {
+    translate: calc((var(--width) - var(--height)) / -2);
   }
 
   /* Disabled */

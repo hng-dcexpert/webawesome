@@ -3,8 +3,8 @@ import { css } from 'lit';
 export default css`
   :host {
     --tag-max-size: 10ch;
-    --show-duration: 100ms;
-    --hide-duration: 100ms;
+    --show-duration: var(--wa-transition-fast);
+    --hide-duration: var(--wa-transition-fast);
   }
 
   /* Add ellipses to multi select options */
@@ -23,8 +23,7 @@ export default css`
   }
 
   :host .enabled:is(.open, :focus-within) [part~='combobox'] {
-    outline: var(--wa-focus-ring);
-    outline-offset: var(--wa-focus-ring-offset);
+    outline-color: var(--wa-color-focus);
   }
 
   /** The popup */
@@ -79,14 +78,11 @@ export default css`
     vertical-align: middle;
     transition:
       background-color var(--wa-transition-normal),
-      border var(--wa-transition-normal),
-      outline var(--wa-transition-fast);
+      border-color var(--wa-transition-normal),
+      outline-color var(--wa-transition-fast);
     transition-timing-function: var(--wa-transition-easing);
-
-    :host([multiple]) .select:not(.placeholder-visible) & {
-      padding-inline-start: 0;
-      padding-block: calc(var(--wa-form-control-height) * 0.1 - var(--wa-form-control-border-width));
-    }
+    outline: var(--wa-focus-ring-style) var(--wa-focus-ring-width) transparent;
+    outline-offset: var(--wa-focus-ring-offset);
 
     /* Pills */
     :host([pill]) & {
@@ -133,8 +129,18 @@ export default css`
     }
   }
 
+  /* Manage spacing when tags are present */
+  :host([multiple]) {
+    --_padding-with-tags: calc(var(--wa-form-control-height) * 0.1 - var(--wa-form-control-border-width));
+
+    & .combobox:has(.tags wa-tag) {
+      padding-block: var(--_padding-with-tags);
+      padding-inline-start: var(--_padding-with-tags);
+    }
+  }
+
   /* Visually hide the display input when multiple is enabled */
-  :host([multiple]) .select:not(.placeholder-visible) .display-input {
+  :host([multiple]) .combobox:has(.tags wa-tag) .display-input {
     position: absolute;
     z-index: -1;
     top: 0;
@@ -161,15 +167,14 @@ export default css`
     flex: 1;
     align-items: center;
     flex-wrap: wrap;
-    margin-inline-start: 0.25em;
     gap: 0.25em;
 
-    &::slotted(wa-tag) {
-      cursor: pointer !important;
+    /* Nested inside the box, so a step down from the box's radius */
+    & wa-tag:not([pill]) {
+      border-radius: var(--wa-border-radius-s);
     }
 
-    .disabled &,
-    .disabled &::slotted(wa-tag) {
+    .disabled & {
       cursor: not-allowed !important;
     }
   }
@@ -192,15 +197,18 @@ export default css`
     margin-inline-end: var(--wa-form-control-padding-inline);
   }
 
-  :host([multiple]) .start::slotted(*) {
-    margin-inline: var(--wa-form-control-padding-inline);
+  :host([multiple]) .combobox:has(.tags wa-tag) .start::slotted(*) {
+    margin-inline-start: calc(var(--wa-form-control-padding-inline) - var(--_padding-with-tags));
   }
 
   /* Clear button */
   [part~='clear-button'] {
+    flex: 0 0 auto;
     display: inline-flex;
+    align-self: stretch;
     align-items: center;
     justify-content: center;
+    inline-size: 1.5em;
     font-size: inherit;
     color: var(--wa-color-neutral-on-quiet);
     border: none;
@@ -208,7 +216,10 @@ export default css`
     padding: 0;
     transition: color var(--wa-transition-normal);
     cursor: pointer;
-    margin-inline-start: var(--wa-form-control-padding-inline);
+    /* The box is wider than the glyph, so overhang half that growth on each side. Keeps the glyph
+       on the same trailing axis as the segmented-field pickers' clear buttons. */
+    margin-inline-start: calc(var(--wa-form-control-padding-inline) - 0.125em);
+    margin-inline-end: -0.125em;
 
     &:focus {
       outline: none;
@@ -231,7 +242,7 @@ export default css`
     display: flex;
     align-items: center;
     color: var(--wa-color-neutral-on-quiet);
-    transition: rotate var(--wa-transition-slow) ease;
+    transition: rotate var(--wa-transition-slow) var(--wa-transition-easing);
     rotate: 0deg;
     margin-inline-start: var(--wa-form-control-padding-inline);
 
@@ -251,8 +262,7 @@ export default css`
     border-radius: var(--wa-border-radius-m);
     border-style: var(--wa-border-style);
     border-width: var(--wa-border-width-s);
-    padding-block: 0.5em;
-    padding-inline: 0;
+    padding: 0.25em;
     overflow: auto;
     overscroll-behavior: none;
 
@@ -263,6 +273,13 @@ export default css`
     &::slotted(wa-divider) {
       --spacing: 0.5em;
     }
+  }
+
+  /* Space options with half the listbox's padding */
+  .listbox slot:not([name]) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125em;
   }
 
   slot:not([name])::slotted(small) {

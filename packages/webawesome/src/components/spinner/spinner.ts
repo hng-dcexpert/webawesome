@@ -5,12 +5,14 @@ import { LocalizeController } from '../../utilities/localize.js';
 import styles from './spinner.styles.js';
 
 /**
- * @summary Spinners are used to show the progress of an indeterminate operation.
+ * @summary Spinners indicate that an operation is in progress when the duration is unknown. Use them for loading states
+ *  where a determinate progress bar isn't practical.
  * @documentation https://webawesome.com/docs/components/spinner
  * @status stable
  * @since 2.0
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `spinner` part instead.
+ * @csspart spinner - The component's outer wrapper.
  *
  * @cssproperty --track-width - The width of the track.
  * @cssproperty --track-color - The color of the track.
@@ -26,15 +28,14 @@ export default class WaSpinner extends WebAwesomeElement {
   render() {
     return html`
       <svg
-        part="base"
+        part="base spinner"
         role="progressbar"
         aria-label=${this.localize.term('loading')}
         fill="none"
-        viewBox="0 0 50 50"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <circle class="track" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
-        <circle class="indicator" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+        <circle class="track" />
+        <circle class="indicator" />
       </svg>
     `;
   }

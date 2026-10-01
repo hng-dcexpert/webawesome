@@ -5,14 +5,20 @@ import variantStyles from '../../styles/component/variants.styles.js';
 import styles from './badge.styles.js';
 
 /**
- * @summary Badges are used to draw attention and display statuses or counts.
+ * @summary Badges draw attention to adjacent content by displaying a status, count, or label. Use them to highlight
+ *  notifications, categorize items, or flag new activity.
  * @documentation https://webawesome.com/docs/components/badge
  * @status stable
  * @since 2.0
  *
  * @slot - The badge's content.
+ * @slot start - An element, such as `<wa-icon>`, placed before the label.
+ * @slot end - An element, such as `<wa-icon>`, placed after the label.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Use the `badge` part instead.
+ * @csspart badge - The component's outer wrapper.
+ * @csspart start - The container that wraps the `start` slot.
+ * @csspart end - The container that wraps the `end` slot.
  *
  * @cssproperty --pulse-color - The color of the badge's pulse effect when using `attention="pulse"`.
  *
@@ -34,7 +40,19 @@ export default class WaBadge extends WebAwesomeElement {
   @property({ reflect: true }) attention: 'none' | 'pulse' | 'bounce' = 'none';
 
   render() {
-    return html` <slot part="base" role="status"></slot>`;
+    return html`
+      <span part="start">
+        <slot name="start"></slot>
+      </span>
+
+      <span part="base badge" role="status">
+        <slot></slot>
+      </span>
+
+      <span part="end">
+        <slot name="end"></slot>
+      </span>
+    `;
   }
 }
 

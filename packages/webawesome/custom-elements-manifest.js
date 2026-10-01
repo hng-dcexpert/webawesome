@@ -1,8 +1,12 @@
+import { cemInheritancePlugin } from '@wc-toolkit/cem-inheritance';
+import { cemValidatorPlugin } from '@wc-toolkit/cem-validator';
 import { jsxTypesPlugin } from '@wc-toolkit/jsx-types';
-import { customElementJetBrainsPlugin } from 'custom-element-jet-brains-integration';
-import { customElementVsCodePlugin } from 'custom-element-vs-code-integration';
-// import { customElementVuejsPlugin } from 'custom-element-vuejs-integration';
+import { getTsProgram, typeParserPlugin } from '@wc-toolkit/type-parser';
 import { parse } from 'comment-parser';
+import { customElementJetBrainsPlugin } from 'custom-element-jet-brains-integration';
+import { customElementSveltePlugin } from 'custom-element-svelte-integration';
+import { customElementVsCodePlugin } from 'custom-element-vs-code-integration';
+import { customElementVuejsPlugin } from 'custom-element-vuejs-integration';
 import fs from 'fs';
 import * as path from 'node:path';
 import { pascalCase } from 'pascal-case';
@@ -22,11 +26,21 @@ function replace(string, terms) {
 }
 
 export default {
-  globs: ['src/components/**/*.ts'],
+  // `src/components/**/*.ts` will ignore src/internal breaking inheritance chains.
+  globs: ['src/**/*.ts'],
   exclude: ['**/*.styles.ts', '**/*.test.ts'],
   litelement: true,
+  dependencies: true,
+  packagejson: false,
   outdir,
+  // Give the plugin access to the TypeScript type checker
+  overrideModuleCreation({ ts, globs }) {
+    const program = getTsProgram(ts, globs, 'tsconfig.json');
+    return program.getSourceFiles().filter(sf => globs.find(glob => sf.fileName.includes(glob)));
+  },
+
   plugins: [
+    typeParserPlugin(),
     // Append package data
     {
       name: 'wa-package-data',
@@ -34,6 +48,11 @@ export default {
         customElementsManifest.package = { name, description, version, author, homepage, license };
       },
     },
+
+    cemInheritancePlugin({
+      fileName: 'custom-elements.json',
+      outdir,
+    }),
 
     // Parse custom jsDoc tags
     {
@@ -43,7 +62,7 @@ export default {
           case ts.SyntaxKind.ClassDeclaration: {
             const className = node.name.getText();
             const classDoc = moduleDoc?.declarations?.find(declaration => declaration.name === className);
-            const customTags = ['dependency', 'documentation', 'since', 'status', 'title'];
+            const customTags = ['dependency', 'documentation', 'since', 'status', 'title', 'ssr'];
             let customComments = '/**';
 
             node.jsDoc?.forEach(jsDoc => {
@@ -115,7 +134,32 @@ export default {
         }
       },
     },
-
+    {
+      // Flag legacy duplicate parts in the manifest so editors and other CEM consumers see the
+      // deprecation, not just the docs: `base` everywhere, and `label` on form controls that also
+      // expose the canonical `form-control-label`.
+      name: 'wa-deprecate-legacy-parts',
+      packageLinkPhase({ customElementsManifest }) {
+        customElementsManifest?.modules?.forEach(mod => {
+          mod.declarations?.forEach(declaration => {
+            // We can only tell both parts exist on the component, not that they're on the same element
+            // (the manifest doesn't track that). True for every form control today; revisit if one ever
+            // adds a `label` that isn't the form-control label.
+            const hasFormControlLabel = declaration.cssParts?.some(part => part.name === 'form-control-label');
+            declaration.cssParts?.forEach(part => {
+              if (part.name === 'base') {
+                part.deprecated =
+                  'Use the part named after the component instead. This part will be removed in a future major version.';
+              }
+              if (part.name === 'label' && hasFormControlLabel) {
+                part.deprecated =
+                  'Use the `form-control-label` part instead. This part will be removed in a future major version.';
+              }
+            });
+          });
+        });
+      },
+    },
     {
       name: 'wa-translate-module-paths',
       packageLinkPhase({ customElementsManifest }) {
@@ -152,7 +196,6 @@ export default {
         });
       },
     },
-
     // Generate custom VS Code data
     customElementVsCodePlugin({
       outdir,
@@ -167,7 +210,7 @@ export default {
 
     // Generate custom JetBrains data
     customElementJetBrainsPlugin({
-      outdir: './dist-cdn',
+      outdir,
       excludeCss: true,
       packageJson: false,
       referencesTemplate: (_, tag) => {
@@ -178,23 +221,50 @@ export default {
       },
     }),
 
+    // Filter out events without names (these come from code analysis detecting
+    // dispatchEvent() calls, but lack the event name that comes from @event JSDoc tags)
+    {
+      name: 'wa-filter-unnamed-events',
+      packageLinkPhase({ customElementsManifest }) {
+        customElementsManifest?.modules?.forEach(mod => {
+          mod.declarations?.forEach(dec => {
+            if (dec.kind === 'class' && dec.events) {
+              dec.events = dec.events.filter(event => event.name);
+            }
+          });
+        });
+      },
+    },
+
     // Generate JSX types (see https://wc-toolkit.com/integrations/jsx/)
     jsxTypesPlugin({
       fileName: 'custom-elements-jsx.d.ts',
       outdir,
       defaultExport: true,
-      componentTypePath: (_name, _tag, modulePath) => {
-        return `./${modulePath}`;
+      includeDefaultDOMEvents: true,
+      componentTypePath: (name, tag, modulePath) => {
+        if (!tag) {
+          return `./${modulePath}`;
+        }
+        const unprefixedTag = tag.replace('wa-', '');
+        return `./components/${unprefixedTag}/${unprefixedTag}.js`;
       },
     }),
 
     //
     // TODO - figure out why this broke when events were updated
     //
-    // customElementVuejsPlugin({
-    //   outdir: './dist/types/vue',
-    //   fileName: 'index.d.ts',
-    //   componentTypePath: (_, tag) => `../../components/${tag.replace('wa-', '')}/${tag.replace('wa-', '')}.js`
-    // })
+    customElementVuejsPlugin({
+      outdir: './dist-cdn/types/vue',
+      fileName: 'index.d.ts',
+      componentTypePath: (_, tag) => `../../components/${tag.replace('wa-', '')}/${tag.replace('wa-', '')}.js`,
+    }),
+    customElementSveltePlugin({
+      outdir: './dist-cdn/types/svelte',
+      fileName: 'index.d.ts',
+    }),
+    // cemValidatorPlugin({
+    //   cemFileName: "./dist-cdn/custom-elements.json"
+    // }),
   ],
 };

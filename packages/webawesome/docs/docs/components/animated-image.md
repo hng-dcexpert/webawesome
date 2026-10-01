@@ -1,8 +1,16 @@
 ---
 title: Animated Image
-description: A component for displaying animated GIFs and WEBPs that play and pause on interaction.
 layout: component
-category: Imagery
+category: Media
+hasAnatomy: false
+synonyms:
+  - gif
+  - webp
+  - motion image
+use-cases:
+  - animated gif
+  - play pause image
+  - hover animation
 ---
 
 ```html {.example}
@@ -18,7 +26,7 @@ This component uses `<canvas>` to draw freeze frames, so images are subject to [
 
 ## Examples
 
-### WEBP Images
+### Image Formats
 
 Both GIF and WEBP images are supported.
 
@@ -29,7 +37,7 @@ Both GIF and WEBP images are supported.
 ></wa-animated-image>
 ```
 
-### Setting a Width and Height
+### Width & Height
 
 To set a custom size, apply a width and/or height to the host element.
 

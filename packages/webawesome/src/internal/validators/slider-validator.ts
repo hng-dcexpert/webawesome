@@ -2,17 +2,21 @@ import type WaSlider from '../../components/slider/slider.js';
 import type { Validator } from '../webawesome-form-associated-element.js';
 
 /**
- * Comprehensive validator for sliders that handles required, range, and step validation
+ * True when `value` isn't aligned to the step grid anchored at `min`. The step count is compared to the nearest integer
+ * with a small tolerance so values that legitimately land on the grid (e.g. `0.3` with a step of `0.1`) aren't rejected
+ * because of floating-point error, matching the native `<input>` step-mismatch behavior.
+ */
+function isStepMismatch(value: number, min: number, step: number): boolean {
+  const steps = (value - min) / step;
+  return Math.abs(steps - Math.round(steps)) > 1e-9;
+}
+
+/**
+ * Comprehensive validator for sliders that handles range and step validation
  */
 export const SliderValidator = (): Validator<WaSlider> => {
-  // Create a native range input to get localized validation messages
-  const nativeRequiredRange = Object.assign(document.createElement('input'), {
-    type: 'range',
-    required: true,
-  });
-
   return {
-    observedAttributes: ['required', 'min', 'max', 'step'],
+    observedAttributes: ['min', 'max', 'step'],
     checkValidity(element) {
       const validity: ReturnType<Validator['checkValidity']> = {
         message: '',
@@ -22,6 +26,10 @@ export const SliderValidator = (): Validator<WaSlider> => {
 
       // Create native range input to get localized validation messages
       const createNativeRange = (value: number, min: number, max: number, step: number) => {
+        if (typeof document === 'undefined') {
+          return '';
+        }
+
         const input = document.createElement('input');
         input.type = 'range';
         input.min = String(min);
@@ -33,14 +41,6 @@ export const SliderValidator = (): Validator<WaSlider> => {
         input.checkValidity();
         return input.validationMessage;
       };
-
-      // Check required validation first
-      if (element.required && !element.hasInteracted) {
-        validity.isValid = false;
-        validity.invalidKeys.push('valueMissing');
-        validity.message = nativeRequiredRange.validationMessage || 'Please fill out this field.';
-        return validity;
-      }
 
       // For range sliders, validate both values
       if (element.isRange) {
@@ -69,8 +69,8 @@ export const SliderValidator = (): Validator<WaSlider> => {
 
         // Check step mismatch
         if (element.step && element.step !== 1) {
-          const minStepMismatch = (minValue - element.min) % element.step !== 0;
-          const maxStepMismatch = (maxValue - element.min) % element.step !== 0;
+          const minStepMismatch = isStepMismatch(minValue, element.min, element.step);
+          const maxStepMismatch = isStepMismatch(maxValue, element.min, element.step);
 
           if (minStepMismatch || maxStepMismatch) {
             validity.isValid = false;
@@ -107,7 +107,7 @@ export const SliderValidator = (): Validator<WaSlider> => {
         }
 
         // Check step mismatch
-        if (element.step && element.step !== 1 && (value - element.min) % element.step !== 0) {
+        if (element.step && element.step !== 1 && isStepMismatch(value, element.min, element.step)) {
           validity.isValid = false;
           validity.invalidKeys.push('stepMismatch');
           validity.message =

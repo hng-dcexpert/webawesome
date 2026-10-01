@@ -3,21 +3,33 @@ title: Frame
 description: 'Use the `wa-frame` class to create a responsive container with consistent proportions to enclose content.'
 layout: docs
 tags: layoutUtilities
+synonyms:
+  - aspect ratio
+  - media frame
+  - ratio box
+use-cases:
+  - video frame
+  - image container
+  - responsive embed
 ---
 
 <style>
   [class*='wa-frame']:has(div:empty) {
-    border: var(--wa-border-width-s) dashed var(--wa-color-neutral-border-normal);
-    padding: var(--wa-space-s);
+    border: var(--layout-example-border);
+    padding: var(--layout-example-padding);
   }
 
   [class*='wa-frame'] div:empty {
-    background-color: var(--wa-color-indigo-60);
-    border-radius: var(--wa-border-radius-m);
+    background-color: var(--layout-example-element-background);
+    border-radius: var(--layout-example-element-border-radius);
     min-block-size: 4rem;
     min-inline-size: 4rem;
   }
 </style>
+
+A frame is a box that keeps a fixed shape no matter how big or small it gets. Wrap an image, video, map, or placeholder in `wa-frame` and it stays a square by default, or a landscape, portrait, or any custom aspect ratio you specify, even as the surrounding layout resizes. That means no more letterboxing, no more collapsed boxes waiting on a slow image to load, and no more cards that end up different heights.
+
+Pair `wa-frame` with one of the [`wa-border-radius-*`](/docs/utilities/rounding) classes to round the corners without cropping the content inside.
 
 ```html {.example}
 <div class="wa-frame" style="max-inline-size: 20rem;">
@@ -57,8 +69,8 @@ Frames are well-suited for images and image placeholders.
       <h3 class="wa-heading-m">White-socks</h3>
       <span class="wa-body-s">Kitten &bull; Male</span>
       <div class="wa-flank:end wa-gap-xs">
-        <wa-button size="small" appearance="filled" variant="brand">Adopt this pet</wa-button>
-        <wa-button id="fav-whitesocks" appearance="plain" size="small">
+        <wa-button size="s" appearance="filled" variant="brand">Adopt this pet</wa-button>
+        <wa-button id="fav-whitesocks" appearance="plain" size="s">
           <wa-icon name="heart" variant="regular" label="Favorite"></wa-icon>
         </wa-button>
         <wa-tooltip for="fav-whitesocks">Favorite</wa-tooltip>
@@ -76,8 +88,8 @@ Frames are well-suited for images and image placeholders.
       <h3 class="wa-heading-m">Bumpkin</h3>
       <span class="wa-body-s">Adult &bull; Male</span>
       <div class="wa-flank:end wa-gap-xs">
-        <wa-button size="small" appearance="filled" variant="brand">Adopt this pet</wa-button>
-        <wa-button id="fav-bumpkin" appearance="plain" size="small">
+        <wa-button size="s" appearance="filled" variant="brand">Adopt this pet</wa-button>
+        <wa-button id="fav-bumpkin" appearance="plain" size="s">
           <wa-icon name="heart" variant="regular" label="Favorite"></wa-icon>
         </wa-button>
         <wa-tooltip for="fav-bumpkin">Favorite</wa-tooltip>
@@ -92,8 +104,8 @@ Frames are well-suited for images and image placeholders.
       <h3 class="wa-heading-m">Swish-tail</h3>
       <span class="wa-body-s">Kitten &bull; Female</span>
       <div class="wa-flank:end wa-gap-xs">
-        <wa-button size="small" appearance="filled" variant="brand">Adopt this pet</wa-button>
-        <wa-button id="fav-swishtail" appearance="plain" size="small">
+        <wa-button size="s" appearance="filled" variant="brand">Adopt this pet</wa-button>
+        <wa-button id="fav-swishtail" appearance="plain" size="s">
           <wa-icon name="heart" variant="regular" label="Favorite"></wa-icon>
         </wa-button>
         <wa-tooltip for="fav-swishtail">Favorite</wa-tooltip>
@@ -108,8 +120,8 @@ Frames are well-suited for images and image placeholders.
       <h3 class="wa-heading-m">Sharp-ears</h3>
       <span class="wa-body-s">Adult &bull; Female</span>
       <div class="wa-flank:end wa-gap-xs">
-        <wa-button size="small" appearance="filled" variant="brand">Adopt this pet</wa-button>
-        <wa-button id="fav-sharpears" appearance="plain" size="small">
+        <wa-button size="s" appearance="filled" variant="brand">Adopt this pet</wa-button>
+        <wa-button id="fav-sharpears" appearance="plain" size="s">
           <wa-icon name="heart" variant="regular" label="Favorite"></wa-icon>
         </wa-button>
         <wa-tooltip for="fav-sharpears">Favorite</wa-tooltip>
@@ -139,16 +151,7 @@ Frames have a square aspect ratio by default. You can append `:square` (1 / 1), 
 
 ## Border Radius
 
-Frames have a square border radius by default. You can add any of the following [`wa-border-radius-*`](/docs/utilities/rounding) classes to an element with `wa-frame` to specify the border radius:
-
-- `wa-border-radius-s`
-- `wa-border-radius-m`
-- `wa-border-radius-l`
-- `wa-border-radius-pill`
-- `wa-border-radius-circle`
-- `wa-border-radius-square`
-
-Alternatively, you can define the `border-radius` property to set custom rounding.
+Frames have a square border radius by default. Add any [`wa-border-radius-*`](/docs/utilities/rounding) class to round the corners, or define the `border-radius` property to set custom rounding.
 
 ```html {.example}
 <div class="wa-grid">

@@ -53,8 +53,13 @@ export default css`
     -webkit-user-select: none;
   }
 
-  .tooltip::part(arrow) {
-    border-bottom: var(--wa-tooltip-border-width) var(--wa-tooltip-border-style) var(--wa-tooltip-border-color);
-    border-right: var(--wa-tooltip-border-width) var(--wa-tooltip-border-style) var(--wa-tooltip-border-color);
+  .tooltip {
+    --popup-border-width: var(--wa-tooltip-border-width);
+
+    /* Inset box-shadow, not a border: Safari seams a clip-path edge that runs along a border. */
+    &::part(arrow) {
+      box-shadow: inset calc(-1 * var(--wa-tooltip-border-width)) calc(-1 * var(--wa-tooltip-border-width)) 0 0
+        var(--wa-tooltip-border-color);
+    }
   }
 `;

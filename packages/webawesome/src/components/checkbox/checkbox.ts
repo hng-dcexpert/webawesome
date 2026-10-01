@@ -4,6 +4,7 @@ import { customElement, property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { live } from 'lit/directives/live.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { RequiredValidator } from '../../internal/validators/required-validator.js';
 import { watch } from '../../internal/watch.js';
@@ -14,7 +15,8 @@ import '../icon/icon.js';
 import styles from './checkbox.styles.js';
 
 /**
- * @summary Checkboxes allow the user to toggle an option on or off.
+ * @summary Checkboxes let users toggle an option on or off, or select multiple items from a list. They also support an
+ *  indeterminate state for partial selections in groups.
  * @documentation https://webawesome.com/docs/components/checkbox
  * @status stable
  * @since 2.0
@@ -30,7 +32,8 @@ import styles from './checkbox.styles.js';
  * @event input - Emitted when the checkbox receives input.
  * @event wa-invalid - Emitted when the form control has been checked for validity and its constraints aren't satisfied.
  *
- * @csspart base - The component's label .
+ * @csspart base - Deprecated. Use the `checkbox` part instead.
+ * @csspart checkbox - The component's outer wrapper.
  * @csspart control - The square container that wraps the checkbox's checked state.
  * @csspart checked-icon - The checked icon, a `<wa-icon>` element.
  * @csspart indeterminate-icon - The indeterminate icon, a `<wa-icon>` element.
@@ -73,15 +76,11 @@ export default class WaCheckbox extends WebAwesomeFormAssociatedElement {
 
   @property() title = ''; // make reactive to pass through
 
-  /** The name of the checkbox, submitted as a name/value pair with form data. */
-  @property({ reflect: true }) name = '';
-
   private _value: string | null = this.getAttribute('value') ?? null;
 
   /** The value of the checkbox, submitted as a name/value pair with form data. */
   get value(): string | null {
-    const val = this._value || 'on';
-    return this.checked ? val : null;
+    return this._value ?? 'on';
   }
 
   @property({ reflect: true })
@@ -90,7 +89,12 @@ export default class WaCheckbox extends WebAwesomeFormAssociatedElement {
   }
 
   /** The checkbox's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
 
   /** Disables the checkbox. */
   @property({ type: Boolean }) disabled = false;
@@ -101,8 +105,22 @@ export default class WaCheckbox extends WebAwesomeFormAssociatedElement {
    */
   @property({ type: Boolean, reflect: true }) indeterminate = false;
 
+  _checked: boolean | null = null;
+
+  get checked() {
+    if (this.valueHasChanged) {
+      return Boolean(this._checked);
+    }
+
+    return this._checked ?? this.defaultChecked;
+  }
+
   /** Draws the checkbox in a checked state. */
-  @property({ type: Boolean, attribute: false }) checked: boolean = this.hasAttribute('checked');
+  @property({ type: Boolean, attribute: false })
+  set checked(val: boolean) {
+    this._checked = Boolean(val);
+    this.valueHasChanged = true;
+  }
 
   /** The default value of the form control. Primarily used for resetting the form control. */
   @property({ type: Boolean, reflect: true, attribute: 'checked' }) defaultChecked: boolean =
@@ -123,15 +141,30 @@ export default class WaCheckbox extends WebAwesomeFormAssociatedElement {
     });
   }
 
-  @watch('defaultChecked')
-  handleDefaultCheckedChange() {
-    if (!this.hasInteracted && this.checked !== this.defaultChecked) {
-      this.checked = this.defaultChecked;
-      this.handleValueOrCheckedChange();
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.didSSR && !this.hasUpdated) {
+      this.updateComplete.then(() => {
+        this.handleDefaultCheckedChange();
+      });
+      return;
     }
+    this.handleDefaultCheckedChange();
+  }
+
+  @watch(['checked', 'defaultChecked'])
+  handleDefaultCheckedChange() {
+    this.handleValueOrCheckedChange();
   }
 
   handleValueOrCheckedChange() {
+    if (this.didSSR && !this.hasUpdated) {
+      this.updateComplete.then(() => {
+        this.handleValueOrCheckedChange();
+      });
+      return;
+    }
+
     // These @watch() commands seem to override the base element checks for changes, so we need to setValue for the form and and updateValidity()
     this.setValue(this.checked ? this.value : null, this._value);
     this.updateValidity();
@@ -157,20 +190,19 @@ export default class WaCheckbox extends WebAwesomeFormAssociatedElement {
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
 
-    if (changedProperties.has('defaultChecked')) {
-      if (!this.hasInteracted) {
-        this.checked = this.defaultChecked;
-      }
-    }
-
-    if (changedProperties.has('value') || changedProperties.has('checked')) {
+    if (
+      changedProperties.has('value') ||
+      changedProperties.has('checked') ||
+      changedProperties.has('defaultChecked') ||
+      changedProperties.has('disabled')
+    ) {
       this.handleValueOrCheckedChange();
     }
   }
 
   formResetCallback() {
     // Evaluate checked before the super call because of our watcher on value.
-    this.checked = this.defaultChecked;
+    this._checked = null;
     super.formResetCallback();
     this.handleValueOrCheckedChange();
   }
@@ -196,27 +228,34 @@ export default class WaCheckbox extends WebAwesomeFormAssociatedElement {
     const isIndeterminate = !this.checked && this.indeterminate;
 
     const iconName = isIndeterminate ? 'indeterminate' : 'check';
-    const iconState = isIndeterminate ? 'indeterminate' : 'check';
+    const iconState = isIndeterminate ? 'indeterminate' : 'checked';
+
+    // We need to use the attribute for SSR, because for some reason Lit SSR always sets `.checked=${live(this.checked)}` as "true"
+    // TODO: Tell Konnor to submit a bug report + repo about this.
+    const checkedAttribute = this.didSSR && !this.hasUpdated ? this.checked : this.defaultChecked;
+    const checkedProperty = this.didSSR && !this.hasUpdated ? null : live(this.checked);
 
     //
     // NOTE: we use a `<div>` around the label slot because of this Chrome bug.
     // Fixed in Chrome 119
     // https://bugs.chromium.org/p/chromium/issues/detail?id=1413733
     //
+
     return html`
-      <label part="base">
+      <label part="base checkbox">
         <span part="control">
           <input
             class="input"
             type="checkbox"
             title=${this.title /* An empty title prevents browser validation tooltips from appearing on hover */}
-            name=${this.name}
-            value=${ifDefined(this._value)}
+            name=${ifDefined(this.name)}
+            value=${ifDefined(this.value)}
             .indeterminate=${live(this.indeterminate)}
-            .checked=${live(this.checked)}
-            .disabled=${this.disabled}
-            .required=${this.required}
-            aria-checked=${this.checked ? 'true' : 'false'}
+            .checked=${ifDefined(checkedProperty)}
+            ?checked=${checkedAttribute}
+            ?disabled=${this.disabled}
+            ?required=${this.required}
+            aria-checked=${this.indeterminate ? 'mixed' : this.checked ? 'true' : 'false'}
             aria-describedby="hint"
             @click=${this.handleClick}
           />
@@ -239,6 +278,12 @@ export default class WaCheckbox extends WebAwesomeFormAssociatedElement {
     `;
   }
 }
+
+// The change-in-update warning is required for this component because the form-associated base class calls
+// updateValidity() in firstUpdated(), which triggers requestUpdate('validity') to sync the validation state after the
+// first render when the validation target is available. Additionally, HasSlotController triggers requestUpdate() on
+// initial slotchange events. See https://lit.dev/docs/tools/development/#development-build-runtime-warnings
+WaCheckbox.disableWarning?.('change-in-update');
 
 declare global {
   interface HTMLElementTagNameMap {

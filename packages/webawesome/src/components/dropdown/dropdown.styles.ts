@@ -2,8 +2,8 @@ import { css } from 'lit';
 
 export default css`
   :host {
-    --show-duration: 50ms;
-    --hide-duration: 50ms;
+    --show-duration: var(--wa-transition-fast);
+    --hide-duration: var(--wa-transition-fast);
     display: contents;
   }
 
@@ -41,7 +41,7 @@ export default css`
       display: block !important;
       margin: 0.25em 0 !important;
       padding: 0.25em 0.75em !important;
-      color: var(--wa-color-text-quiet) !important;
+      color: var(--wa-color-text-quiet);
       font-family: var(--wa-font-family-body) !important;
       font-weight: var(--wa-font-weight-semibold) !important;
       font-size: var(--wa-font-size-smaller) !important;

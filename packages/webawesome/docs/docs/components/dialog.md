@@ -1,19 +1,29 @@
 ---
 title: Dialog
-description: 'Dialogs, sometimes called "modals", appear above the page and require the user''s immediate attention.'
 layout: component
-category: Organization
+category: Layout
+hasAnatomy: false
+synonyms:
+  - modal
+  - popup
+  - lightbox
+  - overlay
+  - modal dialog
+use-cases:
+  - confirmation dialog
+  - alert dialog
+  - prompt
+  - login modal
+  - cookie consent
 ---
-
-<!-- cspell:dictionaries lorem-ipsum -->
 
 ```html {.example}
 <wa-dialog label="Dialog" id="dialog-overview">
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  This is a standard dialog. You can put any content you want in here!
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('#dialog-overview');
@@ -25,17 +35,17 @@ category: Organization
 
 ## Examples
 
-### Dialog without Header
+### Without a Header
 
 Headers are enabled by default. To render a dialog without a header, add the `without-header` attribute.
 
 ```html {.example}
 <wa-dialog label="Dialog" without-header class="dialog-without-header">
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Look ma, no header! Sometimes you just need a clean, simple dialog.
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-without-header');
@@ -45,17 +55,17 @@ Headers are enabled by default. To render a dialog without a header, add the `wi
 </script>
 ```
 
-### Dialog with Footer
+### Footer
 
 Footers can be used to display titles and more. Use the `footer` slot to add a footer to the dialog.
 
 ```html {.example}
 <wa-dialog label="Dialog" class="dialog-footer">
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Check out the footer below — it's a great place for actions and buttons.
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-footer');
@@ -65,41 +75,41 @@ Footers can be used to display titles and more. Use the `footer` slot to add a f
 </script>
 ```
 
-### Opening and Closing Dialogs Declaratively
+### Opening & Closing Declaratively
 
 You can open and close dialogs with JavaScript by toggling the `open` attribute, but you can also do it declaratively. Add the `data-dialog="open id"` to any button on the page, where `id` is the ID of the dialog you want to open.
 
 ```html {.example}
 <wa-dialog label="Dialog" id="dialog-opening">
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  This dialog was opened declaratively — no JavaScript required!
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button data-dialog="open dialog-opening">Open Dialog</wa-button>
+<wa-button appearance="filled" data-dialog="open dialog-opening">Open Dialog</wa-button>
 ```
 
 Similarly, you can add `data-dialog="close"` to a button _inside_ of a dialog to tell it to close.
 
 ```html {.example}
 <wa-dialog label="Dialog" id="dialog-dismiss">
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Click the button in the footer to close this dialog declaratively.
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button data-dialog="open dialog-dismiss">Open Dialog</wa-button>
+<wa-button appearance="filled" data-dialog="open dialog-dismiss">Open Dialog</wa-button>
 ```
 
-### Custom Width
+### Width
 
-Just use the `--width` custom property to set the dialog's width.
+Use the `--width` custom property to set the dialog's width.
 
 ```html {.example}
 <wa-dialog label="Dialog" class="dialog-width" style="--width: 50vw;">
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  This dialog is wider than the default — handy when you need more room for content.
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-width');
@@ -121,7 +131,7 @@ By design, a dialog's height will never exceed that of the viewport. As such, di
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-scrolling');
@@ -140,11 +150,11 @@ The header shows a functional close button by default. You can use the `header-a
   <wa-button class="new-window" slot="header-actions" appearance="plain">
     <wa-icon name="arrow-up-right-from-square" variant="solid" label="Open in new window"></wa-icon>
   </wa-button>
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  You can add custom actions to the header, like the icon button up there!
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-header-actions');
@@ -166,7 +176,7 @@ If you want the dialog to close when the user clicks on the overlay, add the `li
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-light-dismiss');
@@ -178,11 +188,11 @@ If you want the dialog to close when the user clicks on the overlay, add the `li
 
 ### Preventing the Dialog from Closing
 
-By default, dialogs will close when the user clicks the close button, clicks the overlay, or presses the [[Escape]] key. In most cases, the default behavior is the best behavior in terms of UX. However, there are situations where this may be undesirable, such as when data loss will occur.
+By default, dialogs will close when the user clicks the close button or presses the [[Escape]] key. In most cases, the default behavior is the best behavior in terms of UX. However, there are situations where this may be undesirable, such as when data loss will occur.
 
 To keep the dialog open in such cases, you can cancel the `wa-hide` event. When canceled, the dialog will remain open and pulse briefly to draw the user's attention to it.
 
-You can use `event.detail.source` to determine which element triggered the request to close. This example prevents the dialog from closing when the overlay is clicked, but allows the close button or [[Escape]] to dismiss it.
+You can use `event.detail.source` to determine which element triggered the request to close. This example prevents the dialog from closing unless a specific button is clicked.
 
 ```html {.example}
 <wa-dialog label="Dialog" class="dialog-deny-close">
@@ -190,7 +200,7 @@ You can use `event.detail.source` to determine which element triggered the reque
   <wa-button slot="footer" variant="brand" data-dialog="close">Only this button will close it</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-deny-close');
@@ -208,7 +218,7 @@ You can use `event.detail.source` to determine which element triggered the reque
 </script>
 ```
 
-### Setting Initial Focus
+### Initial Focus
 
 To give focus to a specific element when the dialog opens, use the `autofocus` attribute.
 
@@ -218,7 +228,7 @@ To give focus to a specific element when the dialog opens, use the `autofocus` a
   <wa-button slot="footer" variant="brand" data-dialog="close">Close</wa-button>
 </wa-dialog>
 
-<wa-button>Open Dialog</wa-button>
+<wa-button appearance="filled">Open Dialog</wa-button>
 
 <script>
   const dialog = document.querySelector('.dialog-focus');

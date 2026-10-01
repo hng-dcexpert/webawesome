@@ -1,29 +1,51 @@
 ---
 title: Radio Group
-description: Radio groups are used to group multiple radios so they function as a single form control.
 layout: component
-category: Form Controls
+category: Forms
+synonyms:
+  - radio buttons
+  - option group
+  - button group
+use-cases:
+  - single select group
+  - exclusive options
 ---
 
 ```html {.example}
-<wa-radio-group label="Select an option" name="a" value="1">
-  <wa-radio value="1">Option 1</wa-radio>
-  <wa-radio value="2">Option 2</wa-radio>
-  <wa-radio value="3">Option 3</wa-radio>
+<wa-radio-group label="Coffee roast" name="roast" value="medium">
+  <wa-radio value="light">Light roast</wa-radio>
+  <wa-radio value="medium">Medium roast</wa-radio>
+  <wa-radio value="dark">Dark roast</wa-radio>
 </wa-radio-group>
 ```
 
 ## Examples
 
+### Initial Value
+
+Use the `value` attribute on the radio group to set the initially selected radio. Match it to the `value` of the radio that should start checked, just like native HTML.
+
+```html {.example}
+<wa-radio-group label="Coffee roast" name="roast" value="dark">
+  <wa-radio value="light">Light roast</wa-radio>
+  <wa-radio value="medium">Medium roast</wa-radio>
+  <wa-radio value="dark">Dark roast</wa-radio>
+</wa-radio-group>
+```
+
+:::info
+To target checked radios with CSS, use the `:state(checked)` selector.
+:::
+
 ### Hint
 
 Add descriptive hint to a radio group with the `hint` attribute. For hints that contain HTML, use the `hint` slot instead.
 
-```html {.example}
-<wa-radio-group label="Select an option" hint="Choose the most appropriate option." name="a" value="1">
-  <wa-radio value="1">Option 1</wa-radio>
-  <wa-radio value="2">Option 2</wa-radio>
-  <wa-radio value="3">Option 3</wa-radio>
+```html {.example .anatomy}
+<wa-radio-group label="Coffee roast" hint="Pick the roast we'll grind for your order." name="roast" value="medium">
+  <wa-radio value="light">Light roast</wa-radio>
+  <wa-radio value="medium">Medium roast</wa-radio>
+  <wa-radio value="dark">Dark roast</wa-radio>
 </wa-radio-group>
 ```
 
@@ -32,104 +54,133 @@ Add descriptive hint to a radio group with the `hint` attribute. For hints that 
 Set the `appearance` attribute to `button` on all radios to render a radio button group.
 
 ```html {.example}
-<wa-radio-group
-  label="Horizontal options"
-  hint="Select an option that makes you proud."
-  orientation="horizontal"
-  name="a"
-  value="1"
->
-  <wa-radio appearance="button" value="1">Option 1</wa-radio>
-  <wa-radio appearance="button" value="2">Option 2</wa-radio>
-  <wa-radio appearance="button" value="3">Option 3</wa-radio>
-</wa-radio-group>
+<div class="wa-stack">
+  <wa-radio-group
+    label="Color scheme"
+    hint="Choose how the interface should appear."
+    orientation="horizontal"
+    name="scheme"
+    value="auto"
+  >
+    <wa-radio appearance="button" value="light">Light</wa-radio>
+    <wa-radio appearance="button" value="dark">Dark</wa-radio>
+    <wa-radio appearance="button" value="auto">Auto</wa-radio>
+  </wa-radio-group>
 
-<br />
-
-<wa-radio-group
-  label="Vertical options"
-  hint="Select an option that makes you proud."
-  orientation="vertical"
-  name="a"
-  value="1"
-  style="max-width: 300px;"
->
-  <wa-radio appearance="button" value="1">Option 1</wa-radio>
-  <wa-radio appearance="button" value="2">Option 2</wa-radio>
-  <wa-radio appearance="button" value="3">Option 3</wa-radio>
-</wa-radio-group>
+  <wa-radio-group
+    label="Color scheme"
+    hint="Choose how the interface should appear."
+    orientation="vertical"
+    name="scheme"
+    value="auto"
+    style="max-width: 300px;"
+  >
+    <wa-radio appearance="button" value="light">Light</wa-radio>
+    <wa-radio appearance="button" value="dark">Dark</wa-radio>
+    <wa-radio appearance="button" value="auto">Auto</wa-radio>
+  </wa-radio-group>
+</div>
 ```
 
-### Disabling
+### Disabled
 
 To disable the entire radio group, add the `disabled` attribute to the radio group.
 
 ```html {.example}
-<wa-radio-group label="Select an option" disabled>
-  <wa-radio value="1">Option 1</wa-radio>
-  <wa-radio value="2" disabled>Option 2</wa-radio>
-  <wa-radio value="3">Option 3</wa-radio>
+<wa-radio-group label="Shipping speed" disabled>
+  <wa-radio value="standard">Standard</wa-radio>
+  <wa-radio value="express">Express</wa-radio>
+  <wa-radio value="overnight">Overnight</wa-radio>
 </wa-radio-group>
 ```
 
 To disable individual options, add the `disabled` attribute to the respective options.
 
 ```html {.example}
-<wa-radio-group label="Select an option">
-  <wa-radio value="1">Option 1</wa-radio>
-  <wa-radio value="2" disabled>Option 2</wa-radio>
-  <wa-radio value="3">Option 3</wa-radio>
+<wa-radio-group label="Shipping speed">
+  <wa-radio value="standard">Standard</wa-radio>
+  <wa-radio value="express">Express</wa-radio>
+  <wa-radio value="overnight" disabled>Overnight</wa-radio>
 </wa-radio-group>
 ```
 
 ### Orientation
 
-The default orientation for radio items is `vertical`. Set the `orientation` to `horizontal` to items on the same row.
+The default orientation for radio items is `vertical`. Set the `orientation` to `horizontal` to lay items out on the same row.
 
 ```html {.example}
 <wa-radio-group
-  label="Select an option"
-  hint="Choose the most appropriate option."
+  label="Shipping speed"
+  hint="Choose how fast you'd like your order."
   orientation="horizontal"
-  name="a"
-  value="1"
+  name="shipping"
+  value="standard"
 >
-  <wa-radio value="1">Option 1</wa-radio>
-  <wa-radio value="2">Option 2</wa-radio>
-  <wa-radio value="3">Option 3</wa-radio>
+  <wa-radio value="standard">Standard</wa-radio>
+  <wa-radio value="express">Express</wa-radio>
+  <wa-radio value="overnight">Overnight</wa-radio>
 </wa-radio-group>
 ```
 
-### Sizing Options
+### Size
 
 The size of radios will be determined by the Radio Group's `size` attribute.
 
 ```html {.example}
-<wa-radio-group label="Select an option" size="medium" value="medium" onchange="this.size = this.value">
-  <wa-radio value="small">Small</wa-radio>
-  <wa-radio value="medium">Medium</wa-radio>
-  <wa-radio value="large">Large</wa-radio>
+<div class="wa-stack">
+  <wa-radio-group label="Extra small" size="xs" value="medium">
+    <wa-radio value="light">Light roast</wa-radio>
+    <wa-radio value="medium">Medium roast</wa-radio>
+    <wa-radio value="dark">Dark roast</wa-radio>
+  </wa-radio-group>
+  <wa-radio-group label="Small" size="s" value="medium">
+    <wa-radio value="light">Light roast</wa-radio>
+    <wa-radio value="medium">Medium roast</wa-radio>
+    <wa-radio value="dark">Dark roast</wa-radio>
+  </wa-radio-group>
+  <wa-radio-group label="Medium" size="m" value="medium">
+    <wa-radio value="light">Light roast</wa-radio>
+    <wa-radio value="medium">Medium roast</wa-radio>
+    <wa-radio value="dark">Dark roast</wa-radio>
+  </wa-radio-group>
+  <wa-radio-group label="Large" size="l" value="dark">
+    <wa-radio value="light">Light roast</wa-radio>
+    <wa-radio value="medium">Medium roast</wa-radio>
+    <wa-radio value="dark">Dark roast</wa-radio>
+  </wa-radio-group>
+  <wa-radio-group label="Extra large" size="xl" value="dark">
+    <wa-radio value="light">Light roast</wa-radio>
+    <wa-radio value="medium">Medium roast</wa-radio>
+    <wa-radio value="dark">Dark roast</wa-radio>
+  </wa-radio-group>
+</div>
+```
+
+If you need to have radios of varying sizes, place the `size` attribute on individual radio items instead.
+
+```html {.example}
+<wa-radio-group label="Mixed sizes" value="m">
+  <wa-radio value="xs" size="xs">Extra Small</wa-radio>
+  <wa-radio value="s" size="s">Small</wa-radio>
+  <wa-radio value="m" size="m">Medium</wa-radio>
+  <wa-radio value="l" size="l">Large</wa-radio>
+  <wa-radio value="xl" size="xl">Extra Large</wa-radio>
 </wa-radio-group>
 ```
 
-:::info
-[Radios](/docs/components/radio) also have a `size` attribute,
-which will override the inherited size when used.
-:::
-
 ### Validation
 
-Setting the `required` attribute to make selecting an option mandatory. If a value has not been selected, it will prevent the form from submitting and display an error message.
+Set the `required` attribute to make selecting an option mandatory. If a value has not been selected, it will prevent the form from submitting and display an error message.
 
 ```html {.example}
 <form class="validation">
-  <wa-radio-group label="Select an option" name="a" required>
-    <wa-radio value="1">Option 1</wa-radio>
-    <wa-radio value="2">Option 2</wa-radio>
-    <wa-radio value="3">Option 3</wa-radio>
+  <wa-radio-group label="Coffee roast" name="roast" required>
+    <wa-radio value="light">Light roast</wa-radio>
+    <wa-radio value="medium">Medium roast</wa-radio>
+    <wa-radio value="dark">Dark roast</wa-radio>
   </wa-radio-group>
   <br />
-  <wa-button type="submit" variant="brand">Submit</wa-button>
+  <wa-button appearance="filled" type="submit" variant="neutral">Submit</wa-button>
 </form>
 
 <script>
@@ -149,19 +200,19 @@ Use the `setCustomValidity()` method to set a custom validation message. This wi
 
 ```html {.example}
 <form class="custom-validity">
-  <wa-radio-group label="Select an option" name="a" value="1">
-    <wa-radio value="1">Not me</wa-radio>
-    <wa-radio value="2">Me neither</wa-radio>
-    <wa-radio value="3">Choose me</wa-radio>
+  <wa-radio-group label="Coffee roast" name="roast" value="light">
+    <wa-radio value="light">Light roast</wa-radio>
+    <wa-radio value="medium">Medium roast</wa-radio>
+    <wa-radio value="dark">Dark roast</wa-radio>
   </wa-radio-group>
   <br />
-  <wa-button type="submit" variant="brand">Submit</wa-button>
+  <wa-button appearance="filled" type="submit" variant="neutral">Submit</wa-button>
 </form>
 
 <script>
   const form = document.querySelector('.custom-validity');
   const radioGroup = form.querySelector('wa-radio-group');
-  const errorMessage = 'You must choose the last option';
+  const errorMessage = 'Sorry, we only have dark roast today';
 
   // Set initial validity as soon as the element is defined
   customElements.whenDefined('wa-radio-group').then(() => {
@@ -170,7 +221,7 @@ Use the `setCustomValidity()` method to set a custom validation message. This wi
 
   // Update validity when a selection is made
   form.addEventListener('change', () => {
-    const isValid = radioGroup.value === '3';
+    const isValid = radioGroup.value === 'dark';
     radioGroup.setCustomValidity(isValid ? '' : errorMessage);
   });
 

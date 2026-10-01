@@ -3,8 +3,8 @@ import { css } from 'lit';
 export default css`
   :host {
     --spacing: var(--wa-space-m);
-    --show-duration: 200ms;
-    --hide-duration: 200ms;
+    --show-duration: var(--wa-transition-normal);
+    --hide-duration: var(--wa-transition-normal);
 
     display: block;
   }
@@ -119,6 +119,7 @@ export default css`
 
   .content {
     display: block;
+    box-sizing: border-box; /* Ensure contents don't overflow */
     padding-block-start: var(--spacing);
     padding-inline: var(--spacing); /* Add horizontal padding */
     padding-block-end: var(--spacing); /* Add bottom padding */

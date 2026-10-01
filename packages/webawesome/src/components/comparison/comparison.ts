@@ -10,7 +10,8 @@ import '../icon/icon.js';
 import styles from './comparison.styles.js';
 
 /**
- * @summary Compare visual differences between similar content with a sliding panel.
+ * @summary Comparisons show the visual differences between two pieces of similar content using a draggable divider. Use
+ *  them for before/after images, design revisions, or side-by-side previews.
  * @documentation https://webawesome.com/docs/components/comparison
  * @status stable
  * @since 2.0
@@ -23,7 +24,8 @@ import styles from './comparison.styles.js';
  *
  * @event change - Emitted when the position changes.
  *
- * @csspart base - The container that wraps the before and after content.
+ * @csspart base - Deprecated. Use the `comparison` part instead.
+ * @csspart comparison - The component's outer wrapper.
  * @csspart before - The container that wraps the before content.
  * @csspart after - The container that wraps the after content.
  * @csspart divider - The divider that separates the before and after content.
@@ -101,7 +103,7 @@ export default class WaComparison extends WebAwesomeElement {
     const isRtl = this.hasUpdated ? this.localize.dir() === 'rtl' : this.dir === 'rtl';
 
     return html`
-      <div id="comparison" class="image" part="base">
+      <div id="comparison" class="image" part="base comparison">
         <div part="before" class="before">
           <slot name="before"></slot>
         </div>

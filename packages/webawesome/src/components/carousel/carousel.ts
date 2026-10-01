@@ -1,11 +1,12 @@
 import '../../internal/scrollend-polyfill.js';
 
-import type { PropertyValueMap } from 'lit';
+import type { PropertyValueMap, PropertyValues } from 'lit';
 import { html, isServer } from 'lit';
 import { customElement, eventOptions, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { map } from 'lit/directives/map.js';
 import { range } from 'lit/directives/range.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { WaSlideChangeEvent } from '../../events/slide-change.js';
 import { prefersReducedMotion } from '../../internal/animate.js';
 import { waitForEvent } from '../../internal/event.js';
@@ -19,7 +20,8 @@ import { AutoplayController } from './autoplay-controller.js';
 import styles from './carousel.styles.js';
 
 /**
- * @summary Carousels display an arbitrary number of content slides along a horizontal or vertical axis.
+ * @summary Carousels display a series of content slides along a horizontal or vertical axis, one or more at a time.
+ *  Users can navigate between slides with controls, pagination, or autoplay.
  *
  * @since 2.2
  * @status experimental
@@ -32,7 +34,8 @@ import styles from './carousel.styles.js';
  * @slot next-icon - Optional next icon to use instead of the default. Works best with `<wa-icon>`.
  * @slot previous-icon - Optional previous icon to use instead of the default. Works best with `<wa-icon>`.
  *
- * @csspart base - The carousel's internal wrapper.
+ * @csspart base - Deprecated. Use the `carousel` part instead.
+ * @csspart carousel - The component's outer wrapper.
  * @csspart scroll-container - The scroll container that wraps the slides.
  * @csspart pagination - The pagination indicators wrapper.
  * @csspart pagination-item - The pagination indicator.
@@ -46,6 +49,8 @@ import styles from './carousel.styles.js';
  * @cssproperty --scroll-hint - The amount of padding to apply to the scroll area, allowing adjacent slides to become
  *  partially visible as a scroll hint.
  * @cssproperty [--slide-gap=var(--wa-space-m)] - The space between each slide.
+ *
+ * @ssr - `<wa-carousel>` displays its first slide during SSR, but won't be interactive until it hydrates on the client.
  */
 @customElement('wa-carousel')
 export default class WaCarousel extends WebAwesomeElement {
@@ -94,30 +99,71 @@ export default class WaCarousel extends WebAwesomeElement {
 
   @state() dragging = false;
 
+  // When a looping carousel is initialized inside a hidden container, it can't position itself past the leading clones
+  // until it becomes visible. This hides the slides until that corrective scroll lands, preventing a brief flash of the
+  // wrong slide. See firstUpdated() for details.
+  @state() awaitingInitialPosition = false;
+
   private autoplayController = new AutoplayController(this, () => this.next());
   private dragStartPosition: [number, number] = [-1, -1];
   private readonly localize = new LocalizeController(this);
   private mutationObserver: MutationObserver;
+  private resizeObserver?: ResizeObserver;
   private pendingSlideChange = false;
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.setAttribute('role', 'region');
-    this.setAttribute('aria-label', this.localize.term('carousel'));
+
+    // SSR guard: setAttribute is not available during server-side rendering
+    if (!isServer) {
+      this.setAttribute('role', 'region');
+      this.setAttribute('aria-label', this.localize.term('carousel'));
+    }
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.mutationObserver?.disconnect();
+    this.resizeObserver?.disconnect();
   }
 
-  protected firstUpdated(): void {
+  protected firstUpdated(changedProperties: PropertyValues<typeof this>): void {
+    super.firstUpdated(changedProperties);
     this.initializeSlides();
     this.mutationObserver = new MutationObserver(this.handleSlotChange);
     this.mutationObserver.observe(this, {
       childList: true,
       subtree: true,
     });
+
+    // Inside a hidden container (e.g. an inactive tab panel), initializeSlides() runs with zero dimensions, so the
+    // corrective scroll past the prepended `loop` clones never happens and the container rests on the leading clone of
+    // the last slide. Once visible, re-scroll to the active slide; goToSlide()'s `pendingSlideChange` suppresses the
+    // clone-recovery in synchronizeSlides() so this wins, while synchronizeSlides() clears the stale `inert` state. We
+    // hide the slides until that scroll lands to avoid flashing the wrong one.
+    const startedHidden = this.loop && !this.scrollContainer?.clientWidth && !this.scrollContainer?.clientHeight;
+    if (startedHidden) {
+      this.awaitingInitialPosition = true;
+    }
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.scrollContainer?.clientWidth || this.scrollContainer?.clientHeight) {
+        this.goToSlide(this.activeSlide, 'auto');
+        this.synchronizeSlides();
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = undefined;
+
+        // goToSlide() applies the scroll on the next frame; reveal once that frame has painted.
+        if (this.awaitingInitialPosition) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              this.awaitingInitialPosition = false;
+            });
+          });
+        }
+      }
+    });
+    this.resizeObserver.observe(this);
   }
 
   protected willUpdate(changedProperties: PropertyValueMap<WaCarousel> | Map<PropertyKey, unknown>): void {
@@ -319,7 +365,7 @@ export default class WaCarousel extends WebAwesomeElement {
           this.activeSlide =
             (Math.ceil(normalizedIndex / this.slidesPerMove) * this.slidesPerMove + slidesCount) % slidesCount;
 
-          if (!this.scrolling) {
+          if (!this.scrolling && !this.pendingSlideChange) {
             if (this.loop && firstIntersecting.target.hasAttribute('data-clone')) {
               const clonePosition = Number(firstIntersecting.target.getAttribute('data-clone'));
               // Scrolls to the original slide without animating, so the user won't notice that the position has changed
@@ -474,6 +520,45 @@ export default class WaCarousel extends WebAwesomeElement {
     this.goToSlide(this.activeSlide + this.slidesPerMove, behavior);
   }
 
+  /** Adds a carousel item as the last real slide. */
+  addSlide(slide: WaCarouselItem) {
+    if (!this.isCarouselItem(slide)) {
+      throw new TypeError('addSlide() expects a <wa-carousel-item>.');
+    }
+
+    if (slide.hasAttribute('data-clone')) {
+      throw new TypeError('addSlide() cannot add a cloned carousel item.');
+    }
+
+    const slides = this.getSlides();
+    const lastSlide = slides[slides.length - 1];
+    this.insertBefore(slide, lastSlide?.nextElementSibling ?? null);
+  }
+
+  /** Removes the real slide at the specified index. */
+  removeSlide(index: number) {
+    if (!Number.isInteger(index)) {
+      return;
+    }
+
+    const slides = this.getSlides();
+    const slide = slides[index];
+
+    if (!slide) {
+      return;
+    }
+
+    const lastIndexAfterRemoval = Math.max(0, slides.length - 2);
+
+    if (index < this.activeSlide) {
+      this.activeSlide = Math.max(0, this.activeSlide - 1);
+    } else if (index === this.activeSlide) {
+      this.activeSlide = clamp(this.activeSlide, 0, lastIndexAfterRemoval);
+    }
+
+    slide.remove();
+  }
+
   /**
    * Scrolls the carousel to the slide specified by `index`.
    *
@@ -566,7 +651,7 @@ export default class WaCarousel extends WebAwesomeElement {
     const isRTL = isServer ? this.dir === 'rtl' : this.localize.dir() === 'rtl';
 
     return html`
-      <div part="base" class="carousel">
+      <div part="base carousel" class="carousel">
         <div
           id="scroll-container"
           part="scroll-container"
@@ -575,8 +660,9 @@ export default class WaCarousel extends WebAwesomeElement {
             'slides-horizontal': this.orientation === 'horizontal',
             'slides-vertical': this.orientation === 'vertical',
             'slides-dragging': this.dragging,
+            'slides-awaiting-position': this.awaitingInitialPosition,
           })}"
-          style="--slides-per-page: ${this.slidesPerPage};"
+          style=${styleMap({ '--slides-per-page': this.slidesPerPage })}
           aria-busy="${scrolling ? 'true' : 'false'}"
           aria-atomic="true"
           tabindex="0"
@@ -630,7 +716,15 @@ export default class WaCarousel extends WebAwesomeElement {
           : ''}
         ${this.pagination
           ? html`
-              <div part="pagination" role="tablist" class="pagination" aria-controls="scroll-container">
+              <div
+                part="pagination"
+                role="tablist"
+                class="${classMap({
+                  pagination: true,
+                  'pagination-awaiting-position': this.awaitingInitialPosition,
+                })}"
+                aria-controls="scroll-container"
+              >
                 ${map(range(pagesCount), index => {
                   const isActive = index === currentPage;
                   return html`

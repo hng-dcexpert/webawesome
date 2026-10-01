@@ -1,5 +1,5 @@
 import type { PropertyValues } from 'lit';
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import getText from '../../internal/get-text.js';
 import WebAwesomeElement from '../../internal/webawesome-element.js';
@@ -9,7 +9,8 @@ import type WaSelect from '../select/select.js';
 import styles from './option.styles.js';
 
 /**
- * @summary Options define the selectable items within a select component.
+ * @summary Options represent the individual choices inside a select or similar form control. Each option holds a value
+ *  and the label shown to the user.
  * @documentation https://webawesome.com/docs/components/option
  * @status stable
  * @since 2.0
@@ -27,7 +28,10 @@ import styles from './option.styles.js';
  *
  * @cssstate current - The user has keyed into the option, but hasn't selected it yet (shows a highlight)
  * @cssstate selected - The option is selected and has aria-selected="true"
+ * @cssstate disabled - Applied when the option is disabled
  * @cssstate hover - Like `:hover` but works while dragging in Safari
+ *
+ * @cssproperty --current-text-color - The text color of the current (highlighted) option, paired with `--wa-form-control-activated-color`.
  */
 @customElement('wa-option')
 export default class WaOption extends WebAwesomeElement {
@@ -35,7 +39,9 @@ export default class WaOption extends WebAwesomeElement {
 
   // @ts-expect-error - Controller is currently unused
   private readonly localize = new LocalizeController(this);
+  private cachedDefaultLabel = '';
   private isInitialized = false;
+  private isDefaultLabelDirty = true;
 
   @query('.label') defaultSlot: HTMLSlotElement;
 
@@ -78,15 +84,16 @@ export default class WaOption extends WebAwesomeElement {
       return this._label;
     }
 
-    if (!this.defaultLabel) {
-      this.updateDefaultLabel();
-    }
-
     return this.defaultLabel;
   }
 
   /** The default label, generated from the element contents. Will be equal to `label` in most cases. */
-  @state() defaultLabel = '';
+  get defaultLabel(): string {
+    if (this.isDefaultLabelDirty || !this.cachedDefaultLabel) {
+      this.updateDefaultLabel();
+    }
+    return this.cachedDefaultLabel;
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -95,7 +102,6 @@ export default class WaOption extends WebAwesomeElement {
 
     this.addEventListener('mouseenter', this.handleHover);
     this.addEventListener('mouseleave', this.handleHover);
-    this.updateDefaultLabel();
   }
 
   disconnectedCallback(): void {
@@ -106,30 +112,19 @@ export default class WaOption extends WebAwesomeElement {
   }
 
   private handleDefaultSlotChange() {
-    // Tell the controller to update the label
-    this.updateDefaultLabel();
+    // Mark the default label as needing recalculation
+    this.isDefaultLabelDirty = true;
 
-    if (this.isInitialized) {
-      // When the label changes, tell the parent <wa-select> to update
-      customElements.whenDefined('wa-select').then(() => {
-        const controller = this.closest('wa-select');
-        if (controller) {
-          controller.handleDefaultSlotChange();
-          controller.selectionChanged?.();
-        }
-      });
-
-      // When the label changes, tell the parent <wa-combobox> to update
-      customElements.whenDefined('wa-combobox').then(() => {
-        // We cast to <wa-select> because it shares the same API as combobox
-        const controller = this.closest<WaSelect>('wa-combobox');
-        if (controller) {
-          controller.handleDefaultSlotChange();
-          controller.selectionChanged?.();
-        }
-      });
-    } else {
+    if (!this.isInitialized) {
       this.isInitialized = true;
+      return;
+    }
+
+    // Waiting for an unused controller leaves callbacks retaining detached options indefinitely.
+    // Combobox shares the same controller API as select.
+    const controller = this.closest<WaSelect>('wa-select, wa-combobox');
+    if (controller) {
+      customElements.whenDefined(controller.localName).then(() => controller.handleDefaultSlotChange?.());
     }
   }
 
@@ -145,27 +140,38 @@ export default class WaOption extends WebAwesomeElement {
 
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     if (changedProperties.has('defaultSelected')) {
-      // We cast to <wa-select> because it shares the same API as combobox
-      if (!this.closest<WaSelect>('wa-combobox, wa-select')?.hasInteracted) {
-        const oldVal = this.selected;
-        this.selected = this.defaultSelected;
-        this.requestUpdate('selected', oldVal);
+      if ((this.didSSR && this.hasUpdated) || !this.didSSR) {
+        this.syncDefaultSelected();
       }
     }
     super.willUpdate(changedProperties);
   }
 
-  updated(changedProperties: PropertyValues<this>) {
-    super.updated(changedProperties);
+  syncDefaultSelected() {
+    // We cast to <wa-select> because it shares the same API as combobox
+    if ('closest' in this) {
+      // SSR guard.
+      if (!this.closest<WaSelect>('wa-combobox, wa-select')?.hasInteracted) {
+        // Only sync if defaultSelected is becoming true
+        // This prevents overwriting `selected` when it was set directly by frameworks like Vue
+        if (this.defaultSelected) {
+          const oldVal = this.selected;
+          this.selected = this.defaultSelected;
+          this.requestUpdate('selected', oldVal);
+        }
+      }
+    }
+  }
 
+  updated(changedProperties: PropertyValues<this>) {
     if (changedProperties.has('disabled')) {
       this.setAttribute('aria-disabled', this.disabled ? 'true' : 'false');
+      this.customStates.set('disabled', this.disabled);
     }
 
     if (changedProperties.has('selected')) {
       this.setAttribute('aria-selected', this.selected ? 'true' : 'false');
       this.customStates.set('selected', this.selected);
-      this.handleDefaultSlotChange();
     }
 
     if (changedProperties.has('value')) {
@@ -181,12 +187,40 @@ export default class WaOption extends WebAwesomeElement {
     if (changedProperties.has('current')) {
       this.customStates.set('current', this.current);
     }
+
+    super.updated(changedProperties);
+  }
+
+  protected async firstUpdated(changedProperties: PropertyValues<this>) {
+    super.firstUpdated(changedProperties);
+
+    if (this.didSSR && !this.hasUpdated) {
+      await this.updateComplete;
+      this.syncDefaultSelected();
+    } else {
+      this.syncDefaultSelected();
+    }
+
+    // If the `selected` property was set directly (e.g., by Vue's :selected binding),
+    // notify the parent select to update its selection. This is needed because
+    // Vue binds to the `selected` property instead of the `defaultSelected` property
+    // when using `:selected="true"` syntax.
+    if (this.selected && !this.defaultSelected) {
+      const parent = this.closest<WaSelect>('wa-select, wa-combobox');
+
+      if (parent && !parent.hasInteracted) {
+        await customElements.whenDefined(parent?.localName);
+        await parent.updateComplete;
+        parent.selectionChanged?.();
+      }
+    }
   }
 
   private updateDefaultLabel() {
-    let oldValue = this.defaultLabel;
-    this.defaultLabel = getText(this).trim();
-    let changed = this.defaultLabel !== oldValue;
+    let oldValue = this.cachedDefaultLabel;
+    this.cachedDefaultLabel = getText(this).trim();
+    this.isDefaultLabelDirty = false;
+    let changed = this.cachedDefaultLabel !== oldValue;
 
     if (!this._label && changed) {
       // Uses default label, and it has changed
@@ -197,15 +231,26 @@ export default class WaOption extends WebAwesomeElement {
   }
 
   render() {
+    let selected = this.selected;
+
+    if (this.didSSR && !this.hasUpdated) {
+      this.updateComplete.then(() => {
+        this.requestUpdate();
+      });
+      return nothing;
+    }
+
     return html`
-      <wa-icon
-        part="checked-icon"
-        class="check"
-        name="check"
-        library="system"
-        variant="solid"
-        aria-hidden="true"
-      ></wa-icon>
+      ${selected
+        ? html`<wa-icon
+            part="checked-icon"
+            class="check"
+            name="check"
+            library="system"
+            variant="solid"
+            aria-hidden="true"
+          ></wa-icon>`
+        : html`<span part="checked-icon" class="check" aria-hidden="true"></span>`}
       <slot part="start" name="start" class="start"></slot>
       <slot part="label" class="label" @slotchange=${this.handleDefaultSlotChange}></slot>
       <slot part="end" name="end" class="end"></slot>

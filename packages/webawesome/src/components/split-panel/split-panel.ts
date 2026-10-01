@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html, isServer, type PropertyValues } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { WaRepositionEvent } from '../../events/reposition.js';
@@ -10,7 +10,8 @@ import { LocalizeController } from '../../utilities/localize.js';
 import styles from './split-panel.styles.js';
 
 /**
- * @summary Split panels display two adjacent panels, allowing the user to reposition them.
+ * @summary Split panels display two adjacent panels separated by a draggable divider, letting users resize each side to
+ *  suit their workflow.
  * @documentation https://webawesome.com/docs/components/split-panel
  * @status stable
  * @since 2.0
@@ -78,11 +79,15 @@ export default class WaSplitPanel extends WebAwesomeElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.resizeObserver = new ResizeObserver(entries => this.handleResize(entries));
-    this.updateComplete.then(() => this.resizeObserver.observe(this));
 
-    this.detectSize();
-    this.cachedPositionInPixels = this.percentageToPixels(this.position);
+    // SSR guard: ResizeObserver is not available during server-side rendering
+    if (!isServer) {
+      this.resizeObserver = new ResizeObserver(entries => this.handleResize(entries));
+      this.updateComplete.then(() => this.resizeObserver.observe(this));
+
+      this.detectSize();
+      this.cachedPositionInPixels = this.percentageToPixels(this.position);
+    }
   }
 
   disconnectedCallback() {
@@ -104,7 +109,7 @@ export default class WaSplitPanel extends WebAwesomeElement {
   }
 
   private handleDrag(event: PointerEvent) {
-    const isRtl = this.hasUpdated ? this.localize.dir() === 'rtl' : this.dir === 'rtl';
+    const isRtl = this.didSSR && !this.hasUpdated ? this.dir === 'rtl' : this.localize.dir() === 'rtl';
 
     if (this.disabled) {
       return;
@@ -225,14 +230,28 @@ export default class WaSplitPanel extends WebAwesomeElement {
 
     // Resize when a primary panel is set
     if (this.primary) {
-      this.position = this.pixelsToPercentage(this.cachedPositionInPixels);
+      const newPosition = this.pixelsToPercentage(this.cachedPositionInPixels);
+      if (this.position !== newPosition) {
+        this.position = newPosition;
+      }
     }
   }
 
   @watch('position')
   handlePositionChange() {
     this.cachedPositionInPixels = this.percentageToPixels(this.position);
-    this.positionInPixels = this.percentageToPixels(this.position);
+
+    //
+    // Only update positionInPixels if it actually changed to avoid a circular watch loop that causes the
+    // "ResizeObserver loop completed with undelivered notifications" warnings in Chrome
+    //
+    // See https://github.com/shoelace-style/webawesome/issues/2018
+    //
+    const newPositionInPixels = this.percentageToPixels(this.position);
+    if (this.positionInPixels !== newPositionInPixels) {
+      this.positionInPixels = newPositionInPixels;
+    }
+
     this.isCollapsed = false;
     this.positionBeforeCollapsing = 0;
     this.dispatchEvent(new WaRepositionEvent());
@@ -240,7 +259,11 @@ export default class WaSplitPanel extends WebAwesomeElement {
 
   @watch('positionInPixels')
   handlePositionInPixelsChange() {
-    this.position = this.pixelsToPercentage(this.positionInPixels);
+    // Only update position if it actually changed to avoid a circular watch loop
+    const newPosition = this.pixelsToPercentage(this.positionInPixels);
+    if (this.position !== newPosition) {
+      this.position = newPosition;
+    }
   }
 
   @watch('vertical')
@@ -248,7 +271,7 @@ export default class WaSplitPanel extends WebAwesomeElement {
     this.detectSize();
   }
 
-  render() {
+  private updateStyles() {
     const gridTemplate = this.orientation === 'vertical' ? 'gridTemplateRows' : 'gridTemplateColumns';
     const gridTemplateAlt = this.orientation === 'vertical' ? 'gridTemplateColumns' : 'gridTemplateRows';
     const isRtl = this.hasUpdated ? this.localize.dir() === 'rtl' : this.dir === 'rtl';
@@ -265,28 +288,41 @@ export default class WaSplitPanel extends WebAwesomeElement {
     `;
     const secondary = 'auto';
 
-    // @TODO: Create an actual fix for this. [Konnor]
-    if (!this.style) {
-      // @ts-expect-error `this.style` doesn't exist on the server.
-      this.style = {};
-    }
-
     if (this.primary === 'end') {
       if (isRtl && this.orientation === 'horizontal') {
-        this.style[gridTemplate] = `${primary} var(--divider-width) ${secondary}`;
+        this.setStyle(gridTemplate, `${primary} var(--divider-width) ${secondary}`);
       } else {
-        this.style[gridTemplate] = `${secondary} var(--divider-width) ${primary}`;
+        this.setStyle(gridTemplate, `${secondary} var(--divider-width) ${primary}`);
       }
     } else {
       if (isRtl && this.orientation === 'horizontal') {
-        this.style[gridTemplate] = `${secondary} var(--divider-width) ${primary}`;
+        this.setStyle(gridTemplate, `${secondary} var(--divider-width) ${primary}`);
       } else {
-        this.style[gridTemplate] = `${primary} var(--divider-width) ${secondary}`;
+        this.setStyle(gridTemplate, `${primary} var(--divider-width) ${secondary}`);
       }
     }
 
     // Unset the alt grid template property
-    this.style[gridTemplateAlt] = '';
+    this.setStyle(gridTemplateAlt, 'unset');
+  }
+
+  willUpdate(changedProperties: PropertyValues<this>) {
+    if (!this.style) {
+      this.updateStyles();
+    }
+
+    super.willUpdate(changedProperties);
+  }
+
+  updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
+  }
+
+  render() {
+    // `this.style` is essentially `isServer`
+    if (this.style) {
+      this.updateStyles();
+    }
 
     return html`
       <slot name="start" part="panel start" class="start"></slot>

@@ -4,8 +4,9 @@ export default css`
   :host {
     --size: 25rem;
     --spacing: var(--wa-space-l);
-    --show-duration: 200ms;
-    --hide-duration: 200ms;
+    --backdrop-filter: none;
+    --show-duration: var(--wa-transition-normal);
+    --hide-duration: var(--wa-transition-normal);
 
     display: none;
   }
@@ -24,6 +25,7 @@ export default css`
     max-width: 100%;
     max-height: 100%;
     overflow: hidden;
+    color: inherit;
     background-color: var(--wa-color-surface-raised);
     border: none;
     box-shadow: var(--wa-shadow-l);
@@ -208,6 +210,7 @@ export default css`
         remove the fallback values here.
       */
     background-color: var(--wa-color-overlay-modal, rgb(0 0 0 / 0.25));
+    backdrop-filter: var(--backdrop-filter);
   }
 
   @keyframes pulse {

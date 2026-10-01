@@ -1,4 +1,4 @@
-import { html, isServer } from 'lit';
+import { html, isServer, type PropertyValues } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { WaAfterHideEvent } from '../../events/after-hide.js';
@@ -6,7 +6,9 @@ import { WaAfterShowEvent } from '../../events/after-show.js';
 import { WaHideEvent } from '../../events/hide.js';
 import { WaShowEvent } from '../../events/show.js';
 import { animateWithClass } from '../../internal/animate.js';
+import { isTopDismissible, registerDismissible, unregisterDismissible } from '../../internal/dismissible-stack.js';
 import { parseSpaceDelimitedTokens } from '../../internal/parse.js';
+import { RenderedWatcher } from '../../internal/rendered-watcher.js';
 import { lockBodyScrolling, unlockBodyScrolling } from '../../internal/scroll.js';
 import { HasSlotController } from '../../internal/slot.js';
 import { watch } from '../../internal/watch.js';
@@ -16,7 +18,8 @@ import '../button/button.js';
 import styles from './dialog.styles.js';
 
 /**
- * @summary Dialogs, sometimes called "modals", appear above the page and require the user's immediate attention.
+ * @summary Dialogs appear above the page and require the user's immediate attention. Use them for confirmations, forms,
+ *  or focused tasks that interrupt the main flow.
  * @documentation https://webawesome.com/docs/components/dialog
  * @status stable
  * @since 2.0
@@ -48,8 +51,9 @@ import styles from './dialog.styles.js';
  *
  * @cssproperty --spacing - The amount of space around and between the dialog's content.
  * @cssproperty --width - The preferred width of the dialog. Note that the dialog will shrink to accommodate smaller screens.
- * @cssproperty [--show-duration=200ms] - The animation duration when showing the dialog.
- * @cssproperty [--hide-duration=200ms] - The animation duration when hiding the dialog.
+ * @cssproperty [--backdrop-filter=none] - A filter to apply to the backdrop behind the dialog.
+ * @cssproperty [--show-duration=var(--wa-transition-normal)] - The animation duration when showing the dialog.
+ * @cssproperty [--hide-duration=var(--wa-transition-normal)] - The animation duration when hiding the dialog.
  */
 @customElement('wa-dialog')
 export default class WaDialog extends WebAwesomeElement {
@@ -57,6 +61,7 @@ export default class WaDialog extends WebAwesomeElement {
 
   private readonly localize = new LocalizeController(this);
   private readonly hasSlotController = new HasSlotController(this, 'footer', 'header-actions', 'label');
+  private readonly renderedWatcher = new RenderedWatcher(this, isRendered => this.handleRenderedChange(isRendered));
   private originalTrigger: HTMLElement | null;
 
   @query('.dialog') dialog: HTMLDialogElement;
@@ -76,16 +81,25 @@ export default class WaDialog extends WebAwesomeElement {
   /** When enabled, the dialog will be closed when the user clicks outside of it. */
   @property({ attribute: 'light-dismiss', type: Boolean }) lightDismiss = false;
 
-  firstUpdated() {
+  /**
+   * Only required for SSR. Set to `true` if you're slotting in a `footer` element so the server-rendered markup
+   * includes the footer before the component hydrates on the client.
+   */
+  @property({ attribute: 'with-footer', type: Boolean }) withFooter = false;
+
+  firstUpdated(changedProperties: PropertyValues<typeof this>) {
+    super.firstUpdated(changedProperties);
     if (this.open) {
       this.addOpenListeners();
       this.dialog.showModal();
       lockBodyScrolling(this);
+      this.renderedWatcher.start(this.dialog);
     }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.renderedWatcher.stop();
     unlockBodyScrolling(this);
     this.removeOpenListeners();
   }
@@ -108,6 +122,7 @@ export default class WaDialog extends WebAwesomeElement {
     this.open = false;
     this.dialog.close();
     unlockBodyScrolling(this);
+    this.renderedWatcher.stop();
 
     // Restore focus to the original trigger
     const trigger = this.originalTrigger;
@@ -120,16 +135,18 @@ export default class WaDialog extends WebAwesomeElement {
 
   private addOpenListeners() {
     document.addEventListener('keydown', this.handleDocumentKeyDown);
+    registerDismissible(this);
   }
 
   private removeOpenListeners() {
     document.removeEventListener('keydown', this.handleDocumentKeyDown);
+    unregisterDismissible(this);
   }
 
   private handleDialogCancel(event: Event) {
     event.preventDefault();
 
-    if (!this.dialog.classList.contains('hide') && event.target === this.dialog) {
+    if (!this.dialog.classList.contains('hide') && event.target === this.dialog && isTopDismissible(this)) {
       this.requestClose(this.dialog);
     }
   }
@@ -157,12 +174,35 @@ export default class WaDialog extends WebAwesomeElement {
   }
 
   private handleDocumentKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && this.open) {
+    if (event.key === 'Escape' && this.open && isTopDismissible(this)) {
       event.preventDefault();
       event.stopPropagation();
       this.requestClose(this.dialog);
     }
   };
+
+  /**
+   * Suspends the modal when third-party CSS (e.g. cookie banner blockers) hides an open dialog, so the page isn't
+   * left scroll locked and inert. "open" stays true so the modal resumes if the dialog is rendered again.
+   */
+  private handleRenderedChange(isRendered: boolean) {
+    if (!this.open) {
+      this.renderedWatcher.stop();
+      return;
+    }
+
+    if (!isRendered && this.dialog.open) {
+      // Suspend the modal while hidden so the page stays scrollable and interactive
+      this.removeOpenListeners();
+      this.dialog.close();
+      unlockBodyScrolling(this);
+    } else if (isRendered && !this.dialog.open) {
+      // Resume the modal now that the dialog is rendered again
+      this.addOpenListeners();
+      this.dialog.showModal();
+      lockBodyScrolling(this);
+    }
+  }
 
   @watch('open', { waitUntilFirstUpdate: true })
   handleOpenChange() {
@@ -172,6 +212,9 @@ export default class WaDialog extends WebAwesomeElement {
     } else if (!this.open && this.dialog.open) {
       this.open = true;
       this.requestClose(this.dialog);
+    } else if (!this.open) {
+      // Closed programmatically while the modal was suspended (see handleRenderedChange)
+      this.renderedWatcher.stop();
     }
   }
 
@@ -191,6 +234,7 @@ export default class WaDialog extends WebAwesomeElement {
     this.dialog.showModal();
 
     lockBodyScrolling(this);
+    this.renderedWatcher.start(this.dialog);
 
     // Set focus on autocomplete if it exists
     requestAnimationFrame(() => {
@@ -209,7 +253,7 @@ export default class WaDialog extends WebAwesomeElement {
 
   render() {
     const hasHeader = !this.withoutHeader;
-    const hasFooter = this.hasSlotController.test('footer');
+    const hasFooter = this.hasSlotController.test('footer', 'withFooter');
 
     return html`
       <dialog
@@ -224,7 +268,7 @@ export default class WaDialog extends WebAwesomeElement {
       >
         ${hasHeader
           ? html`
-              <header part="header" class="header">
+              <div part="header" class="header">
                 <h2 part="title" class="title" id="title">
                   <!-- If there's no label, use an invisible character to prevent the header from collapsing -->
                   <slot name="label"> ${this.label.length > 0 ? this.label : String.fromCharCode(8203)} </slot>
@@ -246,48 +290,50 @@ export default class WaDialog extends WebAwesomeElement {
                     ></wa-icon>
                   </wa-button>
                 </div>
-              </header>
+              </div>
             `
           : ''}
 
         <div part="body" class="body"><slot></slot></div>
 
-        ${hasFooter
-          ? html`
-              <footer part="footer" class="footer">
-                <slot name="footer"></slot>
-              </footer>
-            `
-          : ''}
+        <!-- Use a hidden element so we still get "slotchange" events. -->
+        <div part="footer" class="footer" ?hidden=${!hasFooter}>
+          <slot name="footer"></slot>
+        </div>
       </dialog>
     `;
   }
 }
 
-//
-// Watch for data-dialog="open *" clicks
-//
-document.addEventListener('click', (event: MouseEvent) => {
-  const dialogAttrEl = (event.target as Element).closest('[data-dialog]');
-
-  if (dialogAttrEl instanceof Element) {
-    const [command, id] = parseSpaceDelimitedTokens(dialogAttrEl.getAttribute('data-dialog') || '');
-
-    if (command === 'open' && id?.length) {
-      const doc = dialogAttrEl.getRootNode() as Document | ShadowRoot;
-      const dialog = doc.getElementById(id) as WaDialog;
-
-      if (dialog?.localName === 'wa-dialog') {
-        dialog.open = true;
-      } else {
-        console.warn(`A dialog with an ID of "${id}" could not be found in this document.`);
-      }
-    }
-  }
-});
-
 // Ugly, but it fixes light dismiss in Safari: https://bugs.webkit.org/show_bug.cgi?id=267688
 if (!isServer) {
+  //
+  // Watch for data-dialog="open *" clicks
+  //
+  document.addEventListener('click', (event: MouseEvent) => {
+    const dialogAttrEl = (event.target as Element).closest('[data-dialog]');
+
+    if (dialogAttrEl instanceof Element) {
+      const [command, id] = parseSpaceDelimitedTokens(dialogAttrEl.getAttribute('data-dialog') || '');
+
+      if (command === 'open' && id?.length) {
+        const doc = dialogAttrEl.getRootNode() as Document | ShadowRoot;
+        const dialog = doc.getElementById(id) as WaDialog;
+
+        if (dialog?.localName === 'wa-dialog') {
+          dialog.open = true;
+        } else {
+          console.warn(`A dialog with an ID of "${id}" could not be found in this document.`);
+        }
+      }
+    }
+  });
+
+  //
+  // Ugly, but it fixes light dismiss in Safari: https://bugs.webkit.org/show_bug.cgi?id=267688
+  //
+  // [Mar 27, 2026] - This bug was fixed in Safari 18.3 beta so this can be removed in a year or so.
+  //
   document.addEventListener('pointerdown', () => {
     /* empty */
   });

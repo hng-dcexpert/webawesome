@@ -1,12 +1,12 @@
 ---
 title: Contributing
 description: Web Awesome is an open source project, meaning everyone can use it and contribute to its development.
-layout: page
+layout: page-outline
 ---
 
 Many Web Awesome components are open source, meaning everyone can use them and contribute to their development. When you join our community, you'll find a friendly group of enthusiasts at all experience levels who are willing to chat about anything and everything related to Web Awesome.
 
-The easiest way to get started contributing is to join the [community chat](https://discord.gg/mg8f26C). This is where we hang out, discuss new ideas, ask for feedback, and more!
+The easiest way to get started contributing is to join the [community chat]({{ site.urls.discord }}). This is where we hang out, discuss new ideas, ask for feedback, and more!
 
 A common misconception about contributing to an open source project is that you need to know how to code. This simply isn't true. In fact, there are _many_ ways to contribute, and some of the most important contributions come from those who never write a single line of code. Here's a list of ways you can make a meaningful contribution to the project:
 
@@ -25,10 +25,10 @@ Please take a moment to review these guidelines to make the contribution process
 
 ## Using the Issue Tracker
 
-The [issue tracker](https://github.com/shoelace-style/webawesome/issues) is for bug reports, feature requests, and pull requests.
+The [issue tracker]({{ site.github.issues }}) is for bug reports, feature requests, and pull requests.
 
-- Please **do not** use the issue tracker for personal support requests. Use [the discussion forum](https://github.com/shoelace-style/webawesome/discussions/categories/help-support) instead.
-- Please **do not** use the issue tracker for feature requests. Use [the discussion forum](https://github.com/shoelace-style/webawesome/discussions/categories/ideas) instead.
+- Please **do not** use the issue tracker for personal support requests. Use [the discussion forum]({{ site.github.helpSupport }}) instead.
+- Please **do not** use the issue tracker for feature requests. Use [the discussion forum]({{ site.github.ideas }}) instead.
 - Please **do not** derail, hijack, or troll issues. Keep the discussion on topic and be respectful of others.
 - Please **do not** post comments with "+1" or "👍". Use [reactions](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) instead.
 - Please **do** use the issue tracker for bug reports and pull requests.
@@ -37,7 +37,7 @@ Issues that do not follow these guidelines are subject to closure. There simply 
 
 ### Feature Requests
 
-Feature requests can be added using [the discussion forum](https://github.com/shoelace-style/webawesome/discussions/categories/ideas).
+Feature requests can be added using [the discussion forum]({{ site.github.ideas }}).
 
 - Please **do** search for an existing request before suggesting a new feature.
 - Please **do** use the voting buttons to vote for a feature.
@@ -83,9 +83,9 @@ Instructions, code examples, and interactive demos are hand-curated to give user
 
 The docs are powered by [Eleventy](https://www.11ty.dev/). Check out `docs/components/*.md` to get an idea of how pages are structured and formatted. If you're creating a new component, it may help to use an existing component's markdown file as a template.
 
-If you need help with documentation, feel free to reach out on the [community chat](https://discord.gg/mg8f26C).
+If you need help with documentation, feel free to reach out on the [community chat]({{ site.urls.discord }}).
 
-### Web Awesome-flavoured Markdown
+### Web Awesome-Flavored Markdown
 
 The Web Awesome documentation uses an extended version of [markdown-it](https://github.com/markdown-it/markdown-it). Generally speaking, it follows the [Commonmark spec](https://spec.commonmark.org/) while sprinkling in some additional features.
 
@@ -150,11 +150,15 @@ eleventyExcludeFromCollections: true
 ---
 ```
 
+### Icons in Examples
+
+Documentation examples should use [Font Awesome Free](https://fontawesome.com/search?o=r&m=free) icons by default so users can copy and paste them without needing a Pro kit code. Pro icons are fine in sections that specifically demonstrate Pro features (e.g. Duotone, Sharp, Pro+ icon packs).
+
 ## Best Practices
 
 The following is a non-exhaustive list of conventions, patterns, and best practices we try to follow. As a contributor, we ask that you make a good faith effort to follow them as well. This ensures consistency and maintainability throughout the project.
 
-If in doubt, use your best judgment and the maintainers will be happy to guide you during the code review process. If you'd like clarification on something before submitting a PR, feel free to reach out on the [community chat](https://discord.gg/mg8f26C).
+If in doubt, use your best judgment and the maintainers will be happy to guide you during the code review process. If you'd like clarification on something before submitting a PR, feel free to reach out on the [community chat]({{ site.urls.discord }}).
 
 :::info
 This section can be a lot to digest in one sitting, so don't feel like you need to take it all in right now. Most contributors will be better off skimming this section and reviewing the relevant content as needed.
@@ -164,7 +168,7 @@ This section can be a lot to digest in one sitting, so don't feel like you need 
 
 Web Awesome is built with accessibility in mind. Creating generic components that are fully accessible to users with varying capabilities across a multitude of circumstances is a daunting challenge. Oftentimes, the solution to an a11y problem is not written in black and white and, therefore, we may not get it right the first time around. There are, however, guidelines we can follow in our effort to make Web Awesome an accessible foundation from which applications and websites can be built.
 
-We take this commitment seriously, so please ensure your contributions have this goal in mind. If you need help with anything a11y-related, please reach out on the [community chat](https://discord.gg/mg8f26C) for assistance. If you discover an accessibility concern within the library, please file a bug on the [issue tracker](https://github.com/shoelace-style/webawesome/issues).
+We take this commitment seriously, so please ensure your contributions have this goal in mind. If you need help with anything a11y-related, please reach out on the [community chat]({{ site.urls.discord }}) for assistance. If you discover an accessibility concern within the library, please file a bug on the [issue tracker]({{ site.github.issues }}).
 
 It's important to remember that, although accessibility starts with foundational components, it doesn't end with them. It everyone's responsibility to encourage best practices and ensure we're providing an optimal experience for all of our users.
 
@@ -232,7 +236,7 @@ When a component relies on the presence of slotted content to do something, don'
 
 See the source of card, dialog, or drawer for examples.
 
-### Dynamic Slot Names and Expand/Collapse Icons
+### Dynamic Slot Names & Expand/Collapse Icons
 
 A pattern has been established in `<wa-details>` and `<wa-tree-item>` for expand/collapse icons that animate on open/close. In short, create two slots called `expand-icon` and `collapse-icon` and render them both in the DOM, using CSS to show/hide only one based on the current open state. Avoid conditionally rendering them. Also avoid using dynamic slot names, such as `<slot name=${open ? 'open' : 'closed'}>`, because Firefox will not animate them.
 
@@ -306,13 +310,13 @@ export default class WaExample {
 
 When an item within a keyboard navigable set is disabled (e.g. tabs, trees, menu items, etc.), the disabled item _should not_ receive focus via keyboard, click, or tap. It should be skipped just like in operating system menus and in native HTML form controls. There is no exception to this. If a particular item requires focus for assistive devices to provide a good user experience, the item should not be disabled and, upon activation, it should inform the user why the respective action cannot be completed.
 
-### When to use a property vs. a CSS custom property
+### When to Use a Property vs. a CSS Custom Property
 
 When designing a component's API, standard properties are generally used to change the _behavior_ of a component, whereas CSS custom properties ("CSS variables") are used to change the _appearance_ of a component. Remember that properties can't respond to media queries, but CSS variables can.
 
 There are some exceptions to this (e.g. when it significantly improves developer experience), but a good rule of thumbs is "will this need to change based on screen size?" If so, you probably want to use a CSS variable.
 
-### When to use a CSS custom property vs. a CSS part
+### When to Use a CSS Custom Property vs. a CSS Part
 
 There are two ways to enable customizations for components. One way is with CSS custom properties ("CSS variables"), the other is with CSS parts ("parts").
 
@@ -331,14 +335,32 @@ When composing elements, use `part` to export the host element and `exportparts`
 ```js
 render() {
   return html`
-    <div part="base">
-      <wa-icon part="icon" exportparts="base:icon__base" ...></wa-icon>
+    <div part="details">
+      <wa-icon part="icon" exportparts="svg:icon__svg" ...></wa-icon>
     </div>
   `;
 }
 ```
 
-This results in a consistent, easy to understand structure for parts. In this example, the `icon` part will target the host element and the `icon__base` part will target the icon's `base` part.
+This results in a consistent, easy to understand structure for parts. In this example, the `icon` part will target the host element and the `icon__svg` part will target the icon's `svg` part.
+
+#### Wrapper elements and their parts
+
+Let the host do the work. `:host` handles the outer box for nearly every component, so only render a wrapper element when you actually need one. `<wa-accordion>`, `<wa-card>`, and `<wa-dropdown>` render no wrapper at all. Style those directly with `wa-accordion { ... }`.
+
+When a component does need a wrapper, name its part after the component (the tag name without the `wa-` prefix). `<wa-details>` renders `details`; `<wa-carousel>` renders `carousel`. If the component name is already taken by an inner part (`<wa-input>` names its native control `input`), the wrapper takes a `-wrapper` suffix instead: `input-wrapper`, `textarea-wrapper`.
+
+```js
+render() {
+  return html` <div part="details">...</div> `;
+}
+```
+
+:::info
+**Don't add `base` to new components.** Components that already render a wrapper keep `base` alongside their component-named part, so existing `::part(base)` selectors keep working. It's flagged deprecated and will be removed in a future major version.
+:::
+
+Never put a part on a `<slot>`. Slots default to `display: contents`, so a part there can't take a border, background, or padding unless you also set `display`. If slotted content needs a styling hook, wrap it in a real element and put the part there.
 
 ### Dependencies
 
@@ -362,6 +384,70 @@ Form controls should support submission and validation through the following con
 - Form controls that **DO** have an editable value such as an input or textarea should have: `@property({ attribute: false }) value` and `@property({ attribute: "value", reflect: true }) defaultValue`. We do this to align with how native form controls work.
 - Form controls which have an editable property such as `checked` or `selected` should also have a `defaultSelected` and `defaultChecked` property respectively for use when the form is "reset".
 
+### Pickers
+
+Pickers are form controls that pair a **segmented input** with a **popup** for visual selection — `<wa-date-input>` and `<wa-time-input>` are the canonical examples. When building a new picker, follow these conventions so it composes cleanly with the rest of the library.
+
+- **Segmented input.** Each editable field is a `role="spinbutton"` rendered as inline text with `font-variant-numeric: tabular-nums`. Use the shared `SegmentedFieldController` (`src/internal/segmented-field/`) for buffer management, roving tabindex, arrow navigation, Home/End, Tab flush, Backspace/Delete, and separator advance. Pass field-specific rules (digit semantics, stepping, bounds) in via the controller's options — don't fork the keyboard handling.
+- **Popup.** The popup is rendered with `<wa-popup>` and follows the same `wa-show` / `wa-after-show` / `wa-hide` / `wa-after-hide` lifecycle as other overlays. It must register with the [dismissible stack](#dismissible-overlays) and open on pointerdown into the input wrapper (but not on Tab focus, which would interfere with tab order). `Alt+ArrowDown` opens the popup and moves focus into it; `Alt+ArrowUp` closes; `Escape` closes when topmost.
+- **Sizing with `em`.** Pickers extend `sizeStyles` so the host's font-size is driven by the `size` attribute (`xs`–`xl`). Every measurement inside the popup — column widths, row heights, icon sizes — must use `em` so the entire UI scales with the host. Use `font-size: inherit` on the popup body and any child component (e.g. `<wa-date-picker>`) and prefer `em`-relative font-sizes (`0.75em`, `0.875em`) over absolute design tokens like `var(--wa-font-size-xs)` where the content needs to scale with the picker.
+- **Icons.** Apply icon sizing via CSS on the slot wrapper (e.g. `.expand-icon { font-size: 1.25em }`), not via inline `style` on the default icon. This keeps the default and user-slotted icons consistent and lets the icon scale with the host's font-size.
+- **Form association.** Pickers extend `WebAwesomeFormAssociatedElement` and follow the standard editable form-control conventions documented above. The canonical wire value is stored in `_value`; segments are derived from it and re-emit `input` on every edit, `change` on every committed transition (matching native `<input type="date">` / `<input type="time">`).
+
+### Dismissible Overlays
+
+Overlay components (dialog, drawer, select, dropdown, tooltip, popover, color-picker, etc.) each attach their own document `keydown` listener. Without coordination, all open overlays respond to the Escape key simultaneously — causing nested overlays to all close at once.
+
+To solve this, a shared dismissible stack is maintained in `src/internal/dismissible-stack.ts`. Components that can be dismissed with the Escape key must use it to coordinate which overlay responds. The stack tracks open dismissibles in order, so only the topmost one handles the key event.
+
+- Call `registerDismissible(this)` when the overlay becomes visible
+- Call `unregisterDismissible(this)` when the overlay closes or is removed from the DOM
+- Before handling Escape, call `isTopDismissible(this)` to confirm your component is the topmost dismissible — if it returns `false`, ignore the key event
+
+This pattern is modeled after the `scroll.ts` lock pattern. Refer to existing overlay components such as `<wa-dialog>` or `<wa-drawer>` for examples.
+
+### Server-Side Rendering (SSR)
+
+Web Awesome supports server-side rendering via [Lit SSR](https://lit.dev/docs/ssr/overview/). During SSR, Lit calls `constructor()` and `connectedCallback()` but does **not** call `firstUpdated()`, `updated()`, or event handlers. This means browser-only APIs such as `document.*`, `window.*`, `ResizeObserver`, `MutationObserver`, etc. need to be guarded in constructors, class field initializers, `connectedCallback()`, and module-level code. Guards are _not_ needed in `firstUpdated()`, `updated()`, event handlers, or `@watch` handlers.
+
+To guard browser-only code, import `isServer` from `lit` and short circuit early or wrap the relevant code. Do not shim browser APIs on `globalThis` as a workaround — use `isServer` guards directly.
+
+```ts
+import { isServer } from 'lit';
+
+connectedCallback() {
+  super.connectedCallback();
+
+  // SSR guard: ResizeObserver is not available during server-side rendering
+  if (isServer) {
+    return;
+  }
+
+  this.resizeObserver = new ResizeObserver(() => this.handleResize());
+  this.resizeObserver.observe(this);
+}
+```
+
+#### Slot Detection & `with-*` Attributes
+
+Some components use `HasSlotController` to conditionally render parts of their template (e.g. a footer that only appears when a `footer` slot is present). During SSR, slot detection doesn't work because the DOM isn't available, so these parts would be missing from the initial server-rendered markup.
+
+To solve this, components that rely on slot detection in their `render()` method must provide `with-*` attributes as SSR fallbacks. Use the `hasUpdated` ternary pattern:
+
+```ts
+/**
+ * Only required for SSR. Set to `true` if you're slotting in a `label` element so the server-rendered markup
+ * includes the label before the component hydrates on the client.
+ */
+@property({ attribute: 'with-label', type: Boolean }) withLabel = false;
+
+render() {
+  const hasLabelSlot = this.hasSlotController.test('label', 'withLabel')
+}
+```
+
+Before the component has hydrated (`hasUpdated` is `false`), the `with-*` property is used. After hydration, `HasSlotController` takes over with real slot detection. All `with-*` SSR properties must include a JSDoc comment that clearly states the property is only required for SSR.
+
 ### System Icons
 
 Avoid inlining SVG icons inside of templates. If a component requires an icon, make sure `<wa-icon>` is a dependency of the component and use the [system library](/docs/components/icon#customizing-the-system-library):
@@ -372,7 +458,7 @@ Avoid inlining SVG icons inside of templates. If a component requires an icon, m
 
 This will render the icons instantly whereas the default library will fetch them from a remote source. If an icon isn't available in the system library, you will need to add it to `library.system.ts`. Using the system library ensures that all icons load instantly and are customizable by users who wish to provide a custom resolver for the system library.
 
-### Writing tests
+### Writing Tests
 
 What to test for a given component:
 
@@ -395,7 +481,7 @@ Guidelines for writing tests:
 - Try to aim testing the user facing features of the component instead of the internal workings of the component.
 - Group multiple tests for one feature into describe blocks.
 
-### Running tests
+### Running Tests
 
 Right now, tests run both "hydrated" (SSR → client hydrated) and "client only". If you're debugging only one specific kind you can set an environment variable. For example, to run only the client tests, you can do:
 
@@ -408,3 +494,13 @@ or for hydrated rendering only:
 ```bash
 SSR_ONLY="true" npm run test
 ```
+
+## Built on
+
+Web Awesome stands on the shoulders of some excellent open source projects. Special thanks to:
+
+- [Eleventy](https://www.11ty.dev/) — the static site generator powering the docs
+- [Lit](https://lit.dev/) — the web component library Web Awesome's components are authored in
+- [Custom Elements Manifest Analyzer](https://github.com/open-wc/custom-elements-manifest) — generates the component API metadata that drives the docs and editor tooling
+- [Floating UI](https://floating-ui.com/) — positioning for popovers, tooltips, and other anchored UI
+- [Animate.css](https://animate.style/) — the animation library behind the show/hide motion presets

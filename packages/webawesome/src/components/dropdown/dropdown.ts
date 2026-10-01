@@ -10,21 +10,25 @@ import { WaSelectEvent } from '../../events/select.js';
 import { WaShowEvent } from '../../events/show.js';
 import { activeElements } from '../../internal/active-elements.js';
 import { animateWithClass } from '../../internal/animate.js';
+import { isTopDismissible, registerDismissible, unregisterDismissible } from '../../internal/dismissible-stack.js';
 import { uniqueId } from '../../internal/math.js';
+import { warnDeprecatedSize } from '../../internal/size.js';
+import { watch } from '../../internal/watch.js';
 import WebAwesomeElement from '../../internal/webawesome-element.js';
 import sizeStyles from '../../styles/component/size.styles.js';
 import { LocalizeController } from '../../utilities/localize.js';
 import type WaButton from '../button/button.js';
 import '../dropdown-item/dropdown-item.js';
 import type WaDropdownItem from '../dropdown-item/dropdown-item.js';
-import WaPopup from '../popup/popup.js'; // Added import for wa-popup
+import '../popup/popup.js';
+import type WaPopup from '../popup/popup.js';
 import styles from './dropdown.styles.js';
 
 const openDropdowns = new Set<WaDropdown>();
 
 /**
- * @summary Dropdowns display a list of options that can be triggered by a button or other element. They support
- *  keyboard navigation, submenus, and various customization options.
+ * @summary Dropdowns display a list of options triggered by a button or other element. They support keyboard
+ *  navigation, submenus, and checkable items for building menus and context actions.
  * @documentation https://webawesome.com/docs/components/dropdown
  * @status stable
  * @since 2.0
@@ -41,7 +45,7 @@ const openDropdowns = new Set<WaDropdown>();
  * @slot - The dropdown's items, typically `<wa-dropdown-item>` elements.
  * @slot trigger - The element that triggers the dropdown, such as a `<wa-button>` or `<button>`.
  *
- * @csspart base - The component's host element.
+ * @csspart base - Deprecated. Style the host element instead.
  * @csspart menu - The dropdown menu container.
  *
  * @cssproperty --show-duration - The duration of the show animation.
@@ -65,7 +69,12 @@ export default class WaDropdown extends WebAwesomeElement {
   @property({ type: Boolean, reflect: true }) open = false;
 
   /** The dropdown's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
+  @property({ reflect: true }) size: 'xs' | 's' | 'm' | 'l' | 'xl' | 'small' | 'medium' | 'large' = 'm';
+
+  @watch('size')
+  handleSizeChange() {
+    warnDeprecatedSize(this.localName, this.size);
+  }
 
   /**
    * The placement of the dropdown menu in reference to the trigger. The menu will shift to a more optimal location if
@@ -101,13 +110,17 @@ export default class WaDropdown extends WebAwesomeElement {
     this.submenuCleanups.clear();
 
     document.removeEventListener('mousemove', this.handleGlobalMouseMove);
+    document.removeEventListener('keydown', this.handleDocumentKeyDown);
+    document.removeEventListener('pointerdown', this.handleDocumentPointerDown);
+    unregisterDismissible(this);
   }
 
-  firstUpdated() {
+  firstUpdated(changedProperties: PropertyValues<typeof this>) {
+    super.firstUpdated(changedProperties);
     this.syncAriaAttributes();
   }
 
-  async updated(changedProperties: PropertyValues) {
+  async updated(changedProperties: PropertyValues<typeof this>) {
     if (changedProperties.has('open')) {
       const previousOpen = changedProperties.get('open');
       // check if the previous value is the same
@@ -138,9 +151,9 @@ export default class WaDropdown extends WebAwesomeElement {
 
   /** Gets all dropdown items slotted in the menu. */
   private getItems(includeDisabled = false): WaDropdownItem[] {
-    const items = this.defaultSlot
-      .assignedElements({ flatten: true })
-      .filter(el => el.localName === 'wa-dropdown-item') as WaDropdownItem[];
+    const items = (this.defaultSlot?.assignedElements({ flatten: true }) ?? []).filter(
+      el => el.localName === 'wa-dropdown-item',
+    ) as WaDropdownItem[];
 
     return includeDisabled ? items : items.filter(item => !item.disabled);
   }
@@ -165,9 +178,9 @@ export default class WaDropdown extends WebAwesomeElement {
 
   /** Syncs item sizes with the dropdown's size property. */
   private syncItemSizes() {
-    const items = this.defaultSlot
-      .assignedElements({ flatten: true })
-      .filter(el => el.localName === 'wa-dropdown-item') as WaDropdownItem[];
+    const items = (this.defaultSlot?.assignedElements({ flatten: true }) ?? []).filter(
+      el => el.localName === 'wa-dropdown-item',
+    ) as WaDropdownItem[];
     items.forEach(item => (item.size = this.size));
   }
 
@@ -230,7 +243,7 @@ export default class WaDropdown extends WebAwesomeElement {
   /** Shows the dropdown menu. This should only be called from within updated(). */
   private async showMenu() {
     const anchor = this.getTrigger();
-    if (!anchor) return;
+    if (!anchor || !this.popup || !this.menu) return;
 
     const showEvent = new WaShowEvent();
     this.dispatchEvent(showEvent);
@@ -250,6 +263,7 @@ export default class WaDropdown extends WebAwesomeElement {
     this.popup.active = true; // Use wa-popup's active property instead of showPopover
     this.open = true;
     openDropdowns.add(this);
+    registerDismissible(this);
     this.syncAriaAttributes();
     document.addEventListener('keydown', this.handleDocumentKeyDown);
     document.addEventListener('pointerdown', this.handleDocumentPointerDown);
@@ -262,7 +276,7 @@ export default class WaDropdown extends WebAwesomeElement {
     const items = this.getItems();
     if (items.length > 0) {
       items.forEach((item, index) => (item.active = index === 0));
-      items[0].focus();
+      items[0].focus({ preventScroll: true });
     }
 
     this.dispatchEvent(new WaAfterShowEvent());
@@ -270,6 +284,8 @@ export default class WaDropdown extends WebAwesomeElement {
 
   /** Hides the dropdown menu. This should only be called from within updated(). */
   private async hideMenu() {
+    if (!this.popup || !this.menu) return;
+
     const hideEvent = new WaHideEvent({ source: this });
     this.dispatchEvent(hideEvent);
     if (hideEvent.defaultPrevented) {
@@ -279,6 +295,7 @@ export default class WaDropdown extends WebAwesomeElement {
 
     this.open = false;
     openDropdowns.delete(this);
+    unregisterDismissible(this);
     this.syncAriaAttributes();
     document.removeEventListener('keydown', this.handleDocumentKeyDown);
     document.removeEventListener('pointerdown', this.handleDocumentPointerDown);
@@ -296,14 +313,14 @@ export default class WaDropdown extends WebAwesomeElement {
   private handleDocumentKeyDown = async (event: KeyboardEvent) => {
     const isRtl = this.localize.dir() === 'rtl';
 
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && this.open && isTopDismissible(this)) {
       const trigger = this.getTrigger();
 
       event.preventDefault();
       event.stopPropagation();
 
       this.open = false;
-      trigger?.focus();
+      trigger?.focus({ preventScroll: true });
       return;
     }
 
@@ -360,7 +377,7 @@ export default class WaDropdown extends WebAwesomeElement {
           const submenuItems = this.getSubmenuItems(activeItem!);
           if (submenuItems.length > 0) {
             submenuItems.forEach((item, index) => (item.active = index === 0));
-            submenuItems[0].focus();
+            submenuItems[0].focus({ preventScroll: true });
           }
         }, 0);
 
@@ -377,7 +394,7 @@ export default class WaDropdown extends WebAwesomeElement {
         removedItem.submenuOpen = false;
 
         setTimeout(() => {
-          removedItem.focus();
+          removedItem.focus({ preventScroll: true });
           removedItem.active = true;
 
           const parentItems =
@@ -435,7 +452,8 @@ export default class WaDropdown extends WebAwesomeElement {
       event.preventDefault();
       event.stopPropagation();
       items.forEach(item => (item.active = item === itemToSelect));
-      itemToSelect.focus();
+      itemToSelect.focus({ preventScroll: true });
+      itemToSelect.scrollIntoView({ block: 'nearest' });
       return;
     }
 
@@ -451,11 +469,11 @@ export default class WaDropdown extends WebAwesomeElement {
           const submenuItems = this.getSubmenuItems(activeItem!);
           if (submenuItems.length > 0) {
             submenuItems.forEach((item, index) => (item.active = index === 0));
-            submenuItems[0].focus();
+            submenuItems[0].focus({ preventScroll: true });
           }
         }, 0);
       } else {
-        this.makeSelection(activeItem);
+        this.makeSelection(activeItem, event);
       }
     }
   };
@@ -492,7 +510,7 @@ export default class WaDropdown extends WebAwesomeElement {
       return;
     }
 
-    this.makeSelection(item);
+    this.makeSelection(item, event);
   }
 
   /** Prepares dropdown items when they get added or removed */
@@ -506,6 +524,8 @@ export default class WaDropdown extends WebAwesomeElement {
     const hasSubmenu = items.some(item => item.hasSubmenu);
 
     items.forEach((item, index) => {
+      item.setAttribute('aria-posinset', String(index + 1));
+      item.setAttribute('aria-setsize', String(items.length));
       item.active = index === 0;
       item.checkboxAdjacent = hasCheckbox;
       item.submenuAdjacent = hasSubmenu;
@@ -604,6 +624,7 @@ export default class WaDropdown extends WebAwesomeElement {
         }),
         shift({
           padding: 8,
+          crossAxis: true,
         }),
       ],
     }).then(({ x, y, placement }) => {
@@ -659,16 +680,22 @@ export default class WaDropdown extends WebAwesomeElement {
     currentSubmenuItem.submenuElement.style.setProperty('--safe-triangle-cursor-x', `${constrainedX}px`);
     currentSubmenuItem.submenuElement.style.setProperty('--safe-triangle-cursor-y', `${constrainedY}px`);
 
-    const isOverItem = currentSubmenuItem.matches(':hover');
+    // Calculate these up front since this event cant fire a lot.
+    const composedPath = event.composedPath();
+    const submenuItemHovered = currentSubmenuItem.matches(':hover');
+    const submenuElementHovered = Boolean(currentSubmenuItem.submenuElement?.matches(':hover'));
+
+    const isOverItem = submenuItemHovered || !!composedPath.find(el => el === currentSubmenuItem);
+
     const isOverSubmenu =
-      currentSubmenuItem.submenuElement?.matches(':hover') ||
-      !!event
-        .composedPath()
-        .find(el => el instanceof HTMLElement && el.closest('[part="submenu"]') === currentSubmenuItem.submenuElement);
+      submenuElementHovered ||
+      !!composedPath.find(
+        el => el instanceof HTMLElement && el.closest('[part="submenu"]') === currentSubmenuItem.submenuElement,
+      );
 
     if (!isOverItem && !isOverSubmenu) {
       setTimeout(() => {
-        if (!currentSubmenuItem.matches(':hover') && !currentSubmenuItem.submenuElement?.matches(':hover')) {
+        if (!submenuItemHovered && !submenuElementHovered) {
           currentSubmenuItem.submenuOpen = false;
         }
       }, 100);
@@ -676,7 +703,7 @@ export default class WaDropdown extends WebAwesomeElement {
   };
 
   /** Makes a selection, emits the wa-select event, and closes the dropdown. */
-  private makeSelection(item: WaDropdownItem) {
+  private makeSelection(item: WaDropdownItem, sourceEvent?: MouseEvent | KeyboardEvent) {
     const trigger = this.getTrigger();
 
     if (item.disabled) {
@@ -691,8 +718,12 @@ export default class WaDropdown extends WebAwesomeElement {
     this.dispatchEvent(selectEvent);
 
     if (!selectEvent.defaultPrevented) {
+      // Items with an href navigate by clicking a hidden link. The source event is passed along so modifier keys, such
+      // as Command or Control to open a new tab, are honored.
+      item.navigate(sourceEvent);
+
       this.open = false;
-      trigger?.focus();
+      trigger?.focus({ preventScroll: true });
     }
   }
 
@@ -708,7 +739,7 @@ export default class WaDropdown extends WebAwesomeElement {
     if (trigger.localName === 'wa-button') {
       await customElements.whenDefined('wa-button');
       await (trigger as WaButton).updateComplete;
-      nativeButton = trigger.shadowRoot!.querySelector<HTMLButtonElement>('[part="base"]')!;
+      nativeButton = trigger.shadowRoot!.querySelector<HTMLButtonElement>('[part~="base"]')!;
     } else {
       nativeButton = trigger as HTMLButtonElement;
     }
@@ -720,12 +751,12 @@ export default class WaDropdown extends WebAwesomeElement {
     nativeButton.setAttribute('aria-haspopup', 'menu');
     nativeButton.setAttribute('aria-expanded', this.open ? 'true' : 'false');
 
-    this.menu.setAttribute('aria-expanded', 'false');
+    this.menu?.setAttribute('aria-expanded', 'false');
   }
 
   render() {
     // On initial render, we want to use this.open, for everything else, we sync off of this.popup.active to get animations working.
-    let active = this.hasUpdated ? this.popup.active : this.open;
+    let active = this.didSSR && !this.hasUpdated ? this.open : this.popup?.active;
 
     return html`
       <wa-popup

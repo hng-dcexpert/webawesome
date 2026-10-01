@@ -1,13 +1,22 @@
 ---
 title: Native Styles
 description: Native styles apply your theme to native HTML elements so they match the look and feel of Web Awesome components.
-layout: page-outline
+layout: docs
 tags: styleUtilities
+synonyms:
+  - browser default
+  - native styles
+  - global styles
+use-cases:
+  - native HTML
+  - style native elements
+  - reset
+  - default styles
 ---
 
 Native styles use design tokens to spruce up native HTML elements so that they match the look and feel of your theme. While these native styles are completely optional, they're a great starting point for a cohesive design and a huge help when using a combination of native elements and Web Awesome components in your project.
 
-## Using native styles
+## Using Native Styles
 
 <wa-tab-group>
   <wa-tab panel="cdn"><wa-icon name="rocket-launch" variant="regular"></wa-icon> CDN</wa-tab>
@@ -16,9 +25,9 @@ Native styles use design tokens to spruce up native HTML elements so that they m
 
   <wa-tab-panel name="cdn">
 {% markdown %}
-1. Head over to your project's <wa-icon name="gear" variant="regular"></wa-icon> **Settings**.
-2. Next to **Features**, select the **Native styles** checkbox.
-3. **Save Changes** to immediately update anywhere you're using your project.
+1. Head over to your project's <wa-tag class="tag-ui" appearance="outlined"><wa-icon name="gear" variant="regular"></wa-icon> Settings</wa-tag>.
+2. Next to <wa-tag class="tag-ui" appearance="outlined">Features</wa-tag>, select the <wa-tag class="tag-ui" appearance="outlined">Native styles</wa-tag> checkbox.
+3. <wa-tag class="tag-ui" appearance="outlined">Save Changes</wa-tag> to immediately update anywhere you're using your project.
 {% endmarkdown %}
   </wa-tab-panel>
 
@@ -36,8 +45,9 @@ Or, if you only want styles for native elements, import a theme and native style
 import '@awesome.me/webawesome/dist/styles/themes/default.css';
 import '@awesome.me/webawesome/dist/styles/native.css';
 ```
+
 {% endmarkdown %}
-  </wa-tab-panel>
+</wa-tab-panel>
 
   <wa-tab-panel name="self-hosted">
 {% markdown %}
@@ -53,29 +63,61 @@ Or, if you only want styles for native elements, include a theme and native styl
 <link rel="stylesheet" href="/dist/styles/themes/default.css" />
 <link rel="stylesheet" href="/dist/styles/native.css" />
 ```
+
 {% endmarkdown %}
-  </wa-tab-panel>
+</wa-tab-panel>
 </wa-tab-group>
 
 You can additionally include any pre-made [theme](/docs/themes/) or [color palette](/docs/color-palettes/) to change the look of native elements.
 
-## Content flow
+## Opting out of Native Styles
+
+If you want to keep Web Awesome's components, tokens, and utilities but let a native element fall back to browser defaults, reset that element in your own stylesheet.
+
+```html {.example}
+<div class="wa-cluster wa-align-items-center">
+  <button type="button">Styled by native.css</button>
+  <button type="button" class="native-reset">Browser default button</button>
+</div>
+
+<style>
+  .native-reset {
+    all: revert;
+    font: inherit;
+  }
+</style>
+```
+
+Use `all: revert` on the exact element you want to opt out of native styles. Re-apply any properties you still want to inherit from your app, such as `font`.
+
+To opt out for an entire section, apply the same reset within a wrapper and target only the native elements in that area.
+
+```css
+.native-reset-zone :where(button, input, select, textarea, table, details, dialog, progress) {
+  all: revert;
+  font: inherit;
+}
+```
+
+If your app has separate page-level entry points, the simplest page-level opt-out is to not load `native.css` on pages that should keep browser defaults. You can still load your theme, components, and any [utilities](/docs/utilities/) you want on those pages.
+
+## Content Flow
 
 Native styles set default space between many block-level HTML elements using the `--wa-content-spacing` token from your theme. This helps ensure that your content is readable.
 
 ```html {.example}
-<h3>Curabitur odio ligula</h3>
+<h3>Content flows naturally</h3>
 <p>
-  Fusce mollis quam lorem, et gravida arcu laoreet ut. Pellentesque et malesuada mi. Morbi faucibus nisl nec nulla
-  porta, ac scelerisque elit finibus.
+  Native styles set consistent spacing between block-level elements using your theme's design tokens. This means
+  headings, paragraphs, lists, and other elements look great together without extra effort.
 </p>
 <blockquote>
   The Road goes ever on and on<br />
   Out from the door where it began.
 </blockquote>
 <p>
-  Donec varius, ipsum sit amet lobortis tristique, quam arcu pellentesque turpis, non porta lacus arcu non arcu. Morbi
-  luctus at nisl sit amet faucibus.
+  Spacing is controlled by the <code>--wa-content-spacing</code> token, so you can easily adjust it to match your
+  design. Set it to zero if you prefer to handle spacing yourself.
 </p>
 <hr />
 <ul>
@@ -110,20 +152,19 @@ Create paragraphs with `<p>`. Paragraphs inherit the default text styles set on 
 
 ```html {.example}
 <p>
-  Vel risus commodo viverra maecenas accumsan lacus vel facilisis volutpat. Amet mauris commodo quis imperdiet. Bibendum
-  ut tristique et egestas quis ipsum suspendisse. Sit amet nulla facilisi morbi tempus iaculis urna id volutpat.
+  Paragraphs inherit the default text styles set on the body element, including font family, size, weight, and line
+  height. They also use <code>text-wrap: pretty</code> to prevent orphaned lines in supported browsers.
 </p>
 
 <p>
-  Cras pulvinar mattis nunc sed blandit libero. Facilisis magna etiam tempor orci. Scelerisque eleifend donec pretium
-  vulputate sapien nec. Donec et odio pellentesque diam volutpat commodo sed egestas egestas. Mauris rhoncus aenean vel
-  elit scelerisque mauris pellentesque.
+  You can have as many paragraphs as you need and they'll maintain consistent spacing between them. Native styles ensure
+  everything stays readable and well-proportioned, no matter how much content you throw at it.
 </p>
 ```
 
 ### Blockquotes
 
-Emphasize longer quotations with `<blockquote>`. Block quotes use your theme's serif font family and a leading border to stand out.
+Emphasize longer quotations with `<blockquote>`. Block quotes use your theme's serif font family, a quiet color, a leading border, and a larger font size that scales with surrounding text.
 
 ```html {.example}
 <blockquote>
@@ -135,7 +176,7 @@ Emphasize longer quotations with `<blockquote>`. Block quotes use your theme's s
 
 ### Lists
 
-Create ordered and unordered lists with `<ol>` and `<ul>`, plus `<li>` for list items within.
+Create ordered and unordered lists with `<ol>` and `<ul>`, plus `<li>` for list items within. Markers use `currentColor` at reduced opacity so they sit quietly next to text.
 
 ```html {.example}
 <div class="wa-grid">
@@ -165,29 +206,54 @@ Create ordered and unordered lists with `<ol>` and `<ul>`, plus `<li>` for list 
 </div>
 ```
 
+Use `<menu>` as a semantic alternative to unordered lists. Native styles reset the browser's default list styles for `<menu>` to support more flexible styling.
+
+```html {.example}
+<menu class="wa-cluster">
+  <li>
+    <button class="wa-filled wa-size-s">
+      <wa-icon name="cut"></wa-icon>
+      <span>Cut</span>
+    </button>
+  </li>
+  <li>
+    <button class="wa-filled wa-size-s">
+      <wa-icon name="copy"></wa-icon>
+      <span>Copy</span>
+    </button>
+  </li>
+  <li>
+    <button class="wa-filled wa-size-s">
+      <wa-icon name="paste"></wa-icon>
+      <span>Paste</span>
+    </button>
+  </li>
+</menu>
+```
+
 Use `<dl>` to create lists of terms (`<dt>`) and definitions (`<dd>`).
 
 ```html {.example}
 <dl>
-  <dt>First term</dt>
+  <dt>Web Components</dt>
   <dd>
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
-    aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    A set of web platform APIs that let you create custom, reusable HTML elements. They work across frameworks and
+    browsers, making them ideal for building design systems and component libraries.
   </dd>
-  <dt>Second term</dt>
+  <dt>Shadow DOM</dt>
   <dd>
-    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur
-    sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+    A browser feature that lets you attach a hidden DOM tree to an element. This keeps your component's styles and
+    markup encapsulated, so they won't accidentally interfere with the rest of the page.
   </dd>
-  <dt>Final term</dt>
+  <dt>Custom Elements</dt>
   <dd>
-    Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam,
-    eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+    A JavaScript API that lets you define new HTML tags with their own behavior. Once registered, you can use them
+    anywhere in your markup just like built-in elements.
   </dd>
 </dl>
 ```
 
-### Code blocks
+### Code Blocks
 
 Create code blocks or other preformatted text with `<pre>`. Preformatted text uses your theme's monospace font family and a subtle background color.
 
@@ -200,7 +266,7 @@ export function thing() {
 </pre>
 ```
 
-### Inline text
+### Inline Text
 
 Use any inline text element like `<strong>`, `<em>`, `<a>`, `<kbd>`, and others to stylize or emphasize text.
 
@@ -227,7 +293,7 @@ Use any inline text element like `<strong>`, `<em>`, `<a>`, `<kbd>`, and others 
 </div>
 ```
 
-## Widgets & media
+## Widgets & Media
 
 ### Media
 
@@ -240,49 +306,94 @@ Add responsive media with `<img>`, `<svg>`, `<video>`, `<iframe>`, and others. M
 />
 ```
 
+### Figures
+
+Pair media with a caption using `<figure>` and `<figcaption>`. Captions use a quiet color and condensed line-height so they read as a label, not running text.
+
+```html {.example}
+<figure>
+  <img
+    src="https://images.unsplash.com/photo-1620196244888-d31ff5bbf163?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    alt="A gray kitten lays next to a toy"
+  />
+  <figcaption>A gray kitten taking a break next to a felt mouse, somewhere off-camera.</figcaption>
+</figure>
+```
+
 ### Tables
 
-Structure tabular data with `<table>` and related elements like `<caption>`, `<thead>`, `<tbody>`, `<th>`, `<tr>`, and `<td>`.
+Structure tabular data with `<table>` and related elements like `<caption>`, `<thead>`, `<tbody>`, `<th>`, `<tr>`, and `<td>`. Headers carry a subtle bottom border.
 
 ```html {.example}
 <table>
   <caption>
-    This
-    <code>&lt;caption&gt;</code>
-    describes the table
+    Furniture pieces and their attributes
   </caption>
   <thead>
     <tr>
-      <th>First column</th>
-      <th>Second column</th>
-      <th>Third column</th>
-      <th>Final column</th>
+      <th>Item</th>
+      <th>Material</th>
+      <th>Room</th>
+      <th>Avg. Price (USD)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <td>Table</td>
+      <td>Oak</td>
+      <td>Dining room</td>
+      <td>$450</td>
     </tr>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <td>Sofa</td>
+      <td>Fabric</td>
+      <td>Living room</td>
+      <td>$800</td>
     </tr>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <td>Dresser</td>
+      <td>Pine</td>
+      <td>Bedroom</td>
+      <td>$320</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+Add `scope="col"` to column headers and `scope="row"` to the first cell in a row so assistive technology knows which cells each header describes. Row headers keep the body font size, so their text aligns with the cells beside them.
+
+```html {.example}
+<table>
+  <caption>
+    Coffee brewing methods
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Method</th>
+      <th scope="col">Grind</th>
+      <th scope="col">Brew Time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">French Press</th>
+      <td>Coarse</td>
+      <td>4 minutes</td>
     </tr>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <th scope="row">Pour Over</th>
+      <td>Medium</td>
+      <td>3 minutes</td>
+    </tr>
+    <tr>
+      <th scope="row">Espresso</th>
+      <td>Fine</td>
+      <td>30 seconds</td>
+    </tr>
+    <tr>
+      <th scope="row">Cold Brew</th>
+      <td>Extra coarse</td>
+      <td>12 hours</td>
     </tr>
   </tbody>
 </table>
@@ -292,38 +403,79 @@ Add the `wa-hover-rows` class to highlight table rows on hover and the `wa-zebra
 
 ```html {.example}
 <table class="wa-zebra-rows wa-hover-rows">
+  <caption>
+    Common savanna wildlife
+  </caption>
   <thead>
     <tr>
-      <th>First column</th>
-      <th>Second column</th>
-      <th>Third column</th>
-      <th>Final column</th>
+      <th>Animal</th>
+      <th>Diet</th>
+      <th>Status</th>
+      <th>Range (km²)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <td>Plains Zebra</td>
+      <td>Herbivore</td>
+      <td>Least Concern</td>
+      <td>2,500,000</td>
     </tr>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <td>Blue Wildebeest</td>
+      <td>Herbivore</td>
+      <td>Least Concern</td>
+      <td>1,000,000</td>
     </tr>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <td>African Lion</td>
+      <td>Carnivore</td>
+      <td>Vulnerable</td>
+      <td>2,100,000</td>
     </tr>
     <tr>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
-      <td>Data</td>
+      <td>Spotted Hyena</td>
+      <td>Carnivore</td>
+      <td>Least Concern</td>
+      <td>10,000,000</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+For tables with a lot of numeric data, add the `wa-tabular-nums` class to any row, column, or whole table to ensure digits align.
+
+```html {.example}
+<table class="wa-tabular-nums">
+  <caption>
+    Average rainfall, in millimeters
+  </caption>
+  <thead>
+    <tr>
+      <th>City</th>
+      <th>Spring</th>
+      <th>Summer</th>
+      <th>Autumn</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Lisbon</td>
+      <td>119</td>
+      <td>14</td>
+      <td>97</td>
+    </tr>
+    <tr>
+      <td>Reykjavík</td>
+      <td>148</td>
+      <td>156</td>
+      <td>219</td>
+    </tr>
+    <tr>
+      <td>Kyoto</td>
+      <td>362</td>
+      <td>508</td>
+      <td>327</td>
     </tr>
   </tbody>
 </table>
@@ -337,8 +489,8 @@ Create disclosure widgets with `<details>` and `<summary>`. Details closely matc
 <details>
   <summary>Summary</summary>
   <p>
-    Ut lectus arcu bibendum at varius. Convallis a cras semper auctor neque vitae. Odio pellentesque diam volutpat
-    commodo sed egestas. Amet dictum sit amet justo donec enim diam vulputate ut.
+    Click the summary to expand and reveal this content. Native details elements are styled to closely match the
+    appearance of the <code>&lt;wa-details&gt;</code> component, so they fit right in with the rest of your UI.
   </p>
 </details>
 ```
@@ -349,7 +501,7 @@ Create modal and non-modal dialog boxes with `<dialog>`. Dialogs closely match t
 
 ```html {.example}
 <dialog id="dialog-example">
-  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+  <p>This is a native dialog element styled to match Web Awesome components.</p>
   <button type="button">Close</button>
 </dialog>
 
@@ -390,6 +542,12 @@ Create buttons with `<button>` or `<input type="button | submit | reset">`. Butt
 <input type="reset" value="Input (reset)" />
 ```
 
+To create links that look like buttons, add the `wa-button` class to an `<a>` element.
+
+```html {.example}
+<a href="" class="wa-button">Link Button</a>
+```
+
 Add the `wa-brand`, `wa-neutral`, `wa-success`, `wa-warning`, or `wa-danger` class to specify the button's [color variant](/docs/utilities/color/).
 
 ```html {.example}
@@ -410,12 +568,14 @@ Add the `wa-accent`, `wa-filled`, `wa-outlined`, or `wa-plain` class to specify 
 <button class="wa-plain wa-neutral">Plain</button>
 ```
 
-Add the `wa-size-s`, `wa-size-m`, or `wa-size-l` class to specify the size of the button.
+Add a `wa-size-*` class to specify the size of the button. Available sizes are `wa-size-xs`, `wa-size-s`, `wa-size-m`, `wa-size-l`, and `wa-size-xl`.
 
 ```html {.example}
+<button class="wa-size-xs">Extra Small</button>
 <button class="wa-size-s">Small</button>
 <button class="wa-size-m">Medium</button>
 <button class="wa-size-l">Large</button>
+<button class="wa-size-xl">Extra Large</button>
 ```
 
 Add the `wa-pill` class to give buttons rounded edges.
@@ -437,7 +597,7 @@ When using `<wa-icon>` within a button, wrap adjacent label text in `<span>` or 
 </button>
 ```
 
-### Form controls
+### Form Controls
 
 Create a variety of form controls with `<input type="">`, `<select>`, and `<textarea>`. Each control closely matches the appearance of the corresponding Web Awesome component.
 
@@ -476,10 +636,15 @@ Create a variety of form controls with `<input type="">`, `<select>`, and `<text
 </script>
 ```
 
-Add the `wa-size-s`, `wa-size-m`, or `wa-size-l` class to any form control or its parent `<label>` to specify its size.
+Add a `wa-size-*` class to any form control or its parent `<label>` to specify its size. Available sizes are `wa-size-xs`, `wa-size-s`, `wa-size-m`, `wa-size-l`, and `wa-size-xl`.
 
 ```html {.example}
 <div class="wa-stack">
+  <input type="text" placeholder="Extra small input" class="wa-size-xs" />
+  <div class="wa-cluster">
+    <label class="wa-size-xs"><input type="checkbox" checked /> Extra small checkbox</label>
+    <label class="wa-size-xs"><input type="radio" name="radio-xs" value="1" checked /> Extra small radio</label>
+  </div>
   <input type="text" placeholder="Small input" class="wa-size-s" />
   <div class="wa-cluster">
     <label class="wa-size-s"><input type="checkbox" checked /> Small checkbox</label>
@@ -494,6 +659,11 @@ Add the `wa-size-s`, `wa-size-m`, or `wa-size-l` class to any form control or it
   <div class="wa-cluster">
     <label class="wa-size-l"><input type="checkbox" checked /> Large checkbox</label>
     <label class="wa-size-l"><input type="radio" name="radio-large" value="1" checked /> Large radio</label>
+  </div>
+  <input type="text" placeholder="Extra large input" class="wa-size-xl" />
+  <div class="wa-cluster">
+    <label class="wa-size-xl"><input type="checkbox" checked /> Extra large checkbox</label>
+    <label class="wa-size-xl"><input type="radio" name="radio-xl" value="1" checked /> Extra large radio</label>
   </div>
 </div>
 ```
@@ -540,7 +710,7 @@ Group form controls together with `<fieldset>` and `<legend>`.
 </fieldset>
 ```
 
-### Form layouts
+### Form Layouts
 
 Wrap form controls in a flex container to arrange them horizontally or vertically with even spacing. Layout utility classes like [`wa-cluster`](/docs/utilities/cluster) and [`wa-stack`](/docs/utilities/stack) can be added directly to a `<fieldset>` or `<form>` to make this especially easy.
 
@@ -567,7 +737,7 @@ Wrap form controls in a flex container to arrange them horizontally or verticall
   </label>
   <label><input type="checkbox" checked /> Add whipped butter</label>
   <button>
-    <wa-icon name="pancakes"></wa-icon>
+    <wa-icon name="layer-group"></wa-icon>
     Stack 'em up
   </button>
 </form>

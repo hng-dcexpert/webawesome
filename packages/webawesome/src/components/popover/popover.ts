@@ -7,6 +7,7 @@ import { WaAfterShowEvent } from '../../events/after-show.js';
 import { WaHideEvent } from '../../events/hide.js';
 import { WaShowEvent } from '../../events/show.js';
 import { animateWithClass } from '../../internal/animate.js';
+import { isTopDismissible, registerDismissible, unregisterDismissible } from '../../internal/dismissible-stack.js';
 import { waitForEvent } from '../../internal/event.js';
 import { uniqueId } from '../../internal/math.js';
 import { watch } from '../../internal/watch.js';
@@ -17,7 +18,8 @@ import styles from './popover.styles.js';
 const openPopovers = new Set<WaPopover>();
 
 /**
- * @summary Popovers display contextual content and interactive elements in a floating panel.
+ * @summary Popovers display contextual content and interactive elements in a floating panel anchored to a trigger. Use
+ *  them for rich tooltips, menus, or any content that appears on demand without navigating away.
  * @documentation https://webawesome.com/docs/components/popover
  * @status stable
  * @since 3.0
@@ -39,8 +41,8 @@ const openPopovers = new Set<WaPopover>();
  *
  * @cssproperty [--arrow-size=0.375rem] - The size of the tiny arrow that points to the popover (set to zero to remove).
  * @cssproperty [--max-width=25rem] - The maximum width of the popover's body content.
- * @cssproperty [--show-duration=100ms] - The speed of the show animation.
- * @cssproperty [--hide-duration=100ms] - The speed of the hide animation.
+ * @cssproperty [--show-duration=var(--wa-transition-fast)] - The speed of the show animation.
+ * @cssproperty [--hide-duration=var(--wa-transition-fast)] - The speed of the hide animation.
  *
  * @cssstate open - Applied when the popover is open.
  */
@@ -89,6 +91,7 @@ export default class WaPopover extends WebAwesomeElement {
   @property({ attribute: 'without-arrow', type: Boolean, reflect: true }) withoutArrow = false;
 
   private eventController = new AbortController();
+  private pressStartedInside = false;
 
   connectedCallback() {
     super.connectedCallback();
@@ -97,6 +100,17 @@ export default class WaPopover extends WebAwesomeElement {
     if (!this.id) {
       this.id = uniqueId('wa-popover-');
     }
+
+    // Recreate event controller if it was aborted
+    if (this.eventController.signal.aborted) {
+      this.eventController = new AbortController();
+    }
+
+    // Re-establish anchor connection after being moved in the DOM
+    if (this.for && this.anchor) {
+      this.anchor = null; // force reattach
+      this.handleForChange();
+    }
   }
 
   disconnectedCallback() {
@@ -104,10 +118,14 @@ export default class WaPopover extends WebAwesomeElement {
 
     // Cleanup events in case the popover is removed while open
     document.removeEventListener('keydown', this.handleDocumentKeyDown);
+    document.removeEventListener('pointerdown', this.handleDocumentPointerDown, { capture: true });
+    unregisterDismissible(this);
     this.eventController.abort();
   }
 
-  firstUpdated() {
+  firstUpdated(changedProperties: PropertyValues<typeof this>) {
+    super.firstUpdated(changedProperties);
+
     // If the popover is visible on init, update its position
     if (this.open) {
       this.dialog.show();
@@ -140,25 +158,39 @@ export default class WaPopover extends WebAwesomeElement {
 
   private handleDocumentKeyDown = (event: KeyboardEvent) => {
     // Hide the popover when escape is pressed
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && this.open && isTopDismissible(this)) {
       event.preventDefault();
+      event.stopPropagation();
       this.open = false;
       if (this.anchor && typeof (this.anchor as any).focus === 'function') {
-        (this.anchor as any).focus();
+        (this.anchor as any).focus({ preventScroll: true });
       }
     }
   };
 
+  private handleDocumentPointerDown = (event: PointerEvent) => {
+    // Remember whether the press started inside the popover. A click event targets the common ancestor of the
+    // pointerdown and pointerup elements, so a drag that starts inside and ends outside reports a target outside the
+    // popover. Only the originating press should decide whether this is an outside click.
+    this.pressStartedInside = event.composedPath().includes(this);
+  };
+
   private handleDocumentClick = (event: PointerEvent) => {
-    const target = event.target as HTMLElement;
+    const pressStartedInside = this.pressStartedInside;
+    this.pressStartedInside = false;
+
+    // Ignore presses that began inside the popover, such as dragging to select text and releasing outside of it
+    if (pressStartedInside) {
+      return;
+    }
 
     // Ignore clicks on the anchor so it will be closed by the anchor's click handler
     if (this.anchor && event.composedPath().includes(this.anchor)) {
       return;
     }
 
-    // Detect when clicks occur outside the popover
-    if (target.closest('wa-popover') !== this) {
+    // Detect when clicks occur outside the popover (using composedPath to traverse shadow DOM boundaries)
+    if (!event.composedPath().includes(this)) {
       this.open = false;
     }
   };
@@ -178,21 +210,29 @@ export default class WaPopover extends WebAwesomeElement {
       openPopovers.forEach(popover => (popover.open = false));
 
       document.addEventListener('keydown', this.handleDocumentKeyDown, { signal: this.eventController.signal });
+      document.addEventListener('pointerdown', this.handleDocumentPointerDown, {
+        capture: true,
+        signal: this.eventController.signal,
+      });
       document.addEventListener('click', this.handleDocumentClick, { signal: this.eventController.signal });
 
-      // Show the dialog non-modally
-      this.dialog.show();
+      // Show the dialog non-modally. Set the `open` attribute instead of calling show(): show() runs the native
+      // dialog focusing steps, which scroll the page even though the popover is anchored in-viewport. The popover
+      // manages focus itself below (with preventScroll), so those steps are unwanted.
+      this.dialog.setAttribute('open', '');
       this.popup.active = true;
       openPopovers.add(this);
+      registerDismissible(this);
 
-      // Autofocus the first element with the autofocus attribute
+      // Autofocus the first element with the autofocus attribute. preventScroll everywhere: the popup may not be
+      // positioned yet, and an anchored popover is always shown in-viewport, so focus must never scroll the page.
       requestAnimationFrame(() => {
         const elementToFocus = this.querySelector<HTMLElement>('[autofocus]');
         if (elementToFocus && typeof elementToFocus.focus === 'function') {
-          elementToFocus.focus();
+          elementToFocus.focus({ preventScroll: true });
         } else {
           // Fall back to setting focus on the dialog
-          this.dialog.focus();
+          this.dialog.focus({ preventScroll: true });
         }
       });
 
@@ -210,9 +250,12 @@ export default class WaPopover extends WebAwesomeElement {
       }
 
       document.removeEventListener('keydown', this.handleDocumentKeyDown);
+      document.removeEventListener('pointerdown', this.handleDocumentPointerDown, { capture: true });
       document.removeEventListener('click', this.handleDocumentClick);
+      this.pressStartedInside = false;
 
       openPopovers.delete(this);
+      unregisterDismissible(this);
 
       await animateWithClass(this.popup.popup, 'hide-with-scale');
       this.popup.active = false;
@@ -303,6 +346,7 @@ export default class WaPopover extends WebAwesomeElement {
           skidding=${this.skidding}
           flip
           shift
+          shift-padding="8"
           ?arrow=${!this.withoutArrow}
           .anchor=${this.anchor}
         >

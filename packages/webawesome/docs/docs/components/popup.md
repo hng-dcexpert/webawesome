@@ -1,17 +1,17 @@
 ---
 title: Popup
-description: 'Popup is a utility that lets you declaratively anchor "popup" containers to another element.'
 layout: component
-category: Utilities
+category: Helpers
+hasAnatomy: false
+synonyms:
+  - floating element
+  - anchor
+  - positioned element
+use-cases:
+  - tooltip anchor
+  - dropdown anchor
+  - floating UI
 ---
-
-This component's name is inspired by [`<popup>`](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Popup/explainer.md). It uses [Floating UI](https://floating-ui.com/) under the hood to provide a well-tested, lightweight, and fully declarative positioning utility for tooltips, dropdowns, and more.
-
-Popup doesn't provide any styles — just positioning! The popup's preferred placement, distance, and skidding (offset) can be configured using attributes. An arrow that points to the anchor can be shown and customized to your liking. Additional positioning options are available and described in more detail below.
-
-:::warning
-Popup is a low-level utility built specifically for positioning elements. Do not mistake it for a [tooltip](/docs/components/tooltip) or similar because _it does not facilitate an accessible experience!_ Almost every correct usage of `<wa-popup>` will involve building other components. It should rarely, if ever, occur directly in your HTML.
-:::
 
 ```html {.example}
 <div class="popup-overview">
@@ -20,41 +20,66 @@ Popup is a low-level utility built specifically for positioning elements. Do not
     <div class="box"></div>
   </wa-popup>
 
-  <div class="popup-overview-options">
-    <wa-select label="Placement" name="placement" value="top" class="popup-overview-select">
-      <wa-option value="top">top</wa-option>
-      <wa-option value="top-start">top-start</wa-option>
-      <wa-option value="top-end">top-end</wa-option>
-      <wa-option value="bottom">bottom</wa-option>
-      <wa-option value="bottom-start">bottom-start</wa-option>
-      <wa-option value="bottom-end">bottom-end</wa-option>
-      <wa-option value="right">right</wa-option>
-      <wa-option value="right-start">right-start</wa-option>
-      <wa-option value="right-end">right-end</wa-option>
-      <wa-option value="left">left</wa-option>
-      <wa-option value="left-start">left-start</wa-option>
-      <wa-option value="left-end">left-end</wa-option>
-    </wa-select>
-    <wa-input type="number" name="distance" label="distance" value="0"></wa-input>
-    <wa-input type="number" name="skidding" label="Skidding" value="0"></wa-input>
-  </div>
+  <wa-divider></wa-divider>
 
-  <div class="popup-overview-options">
-    <wa-switch name="active" checked>Active</wa-switch>
-    <wa-switch name="arrow">Arrow</wa-switch>
+  <div class="wa-cluster">
+    <div class="popup-overview-options">
+      <wa-combobox
+        label="Placement"
+        name="placement"
+        placeholder="Select placement..."
+        class="popup-overview-select"
+      ></wa-combobox>
+      <wa-input type="number" name="distance" label="distance" value="0"></wa-input>
+      <wa-input type="number" name="skidding" label="Skidding" value="0"></wa-input>
+    </div>
+
+    <div class="popup-overview-options">
+      <wa-switch name="active" checked>Active</wa-switch>
+      <wa-switch name="arrow">Arrow</wa-switch>
+    </div>
   </div>
 </div>
 
-<script>
+<script type="module">
+  await customElements.whenDefined('wa-combobox');
+  await customElements.whenDefined('wa-option');
+
   const container = document.querySelector('.popup-overview');
   const popup = container.querySelector('wa-popup');
-  const select = container.querySelector('wa-select[name="placement"]');
+  const placement = container.querySelector('wa-combobox[name="placement"]');
   const distance = container.querySelector('wa-input[name="distance"]');
   const skidding = container.querySelector('wa-input[name="skidding"]');
   const active = container.querySelector('wa-switch[name="active"]');
   const arrow = container.querySelector('wa-switch[name="arrow"]');
 
-  select.addEventListener('change', () => (popup.placement = select.value));
+  const placements = [
+    'top',
+    'top-start',
+    'top-end',
+    'bottom',
+    'bottom-start',
+    'bottom-end',
+    'right',
+    'right-start',
+    'right-end',
+    'left',
+    'left-start',
+    'left-end',
+  ];
+
+  placements.forEach(value => {
+    const option = document.createElement('wa-option');
+    option.value = value;
+    option.textContent = value;
+    placement.append(option);
+  });
+
+  await placement.updateComplete;
+
+  placement.value = 'top';
+
+  placement.addEventListener('change', () => (popup.placement = placement.value));
   distance.addEventListener('input', () => (popup.distance = distance.value));
   skidding.addEventListener('input', () => (popup.skidding = skidding.value));
   active.addEventListener('change', () => (popup.active = active.checked));
@@ -88,7 +113,7 @@ Popup is a low-level utility built specifically for positioning elements. Do not
     gap: 1rem;
   }
 
-  .popup-overview-options wa-select {
+  .popup-overview-options wa-combobox {
     width: 160px;
   }
 
@@ -102,8 +127,18 @@ Popup is a low-level utility built specifically for positioning elements. Do not
 </style>
 ```
 
+This component's name is inspired by [`<popup>`](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Popup/explainer.md). It uses [Floating UI](https://floating-ui.com/) under the hood to provide a well-tested, lightweight, and fully declarative positioning utility for tooltips, dropdowns, and more.
+
+Popup doesn't provide any styles — just positioning! The popup's preferred placement, distance, and skidding (offset) can be configured using attributes. An arrow that points to the anchor can be shown and customized to your liking. Additional positioning options are available and described in more detail below.
+
+:::warning
+<strong>Popup is a low-level positioning utility, not an accessible component.</strong><br />
+Don't use it as a [tooltip](/docs/components/tooltip) or similar — it doesn't facilitate an accessible experience. Almost every correct use builds it into another component rather than placing `<wa-popup>` directly in your HTML.
+:::
+
 :::info
-A popup's anchor should not be styled with `display: contents` since the coordinates will not be eligible for calculation. However, if the anchor is a `<slot>` element, popup will use the first assigned element as the anchor. This behavior allows other components to pass anchors through more easily via composition.
+<strong>Don't style a popup's anchor with `display: contents`.</strong><br />
+The coordinates won't be eligible for calculation. If the anchor is a `<slot>`, popup uses the first assigned element as the anchor, so components can pass anchors through via composition.
 :::
 
 ## Examples
@@ -119,7 +154,8 @@ Popups are inactive and hidden until the `active` attribute is applied. Removing
     <div class="box"></div>
   </wa-popup>
 
-  <br />
+  <wa-divider></wa-divider>
+
   <wa-switch checked>Active</wa-switch>
 </div>
 
@@ -191,20 +227,9 @@ Since placement is preferred when using `flip`, you can observe the popup's curr
     <div class="box"></div>
   </wa-popup>
 
-  <wa-select label="Placement" value="top">
-    <wa-option value="top">top</wa-option>
-    <wa-option value="top-start">top-start</wa-option>
-    <wa-option value="top-end">top-end</wa-option>
-    <wa-option value="bottom">bottom</wa-option>
-    <wa-option value="bottom-start">bottom-start</wa-option>
-    <wa-option value="bottom-end">bottom-end</wa-option>
-    <wa-option value="right">right</wa-option>
-    <wa-option value="right-start">right-start</wa-option>
-    <wa-option value="right-end">right-end</wa-option>
-    <wa-option value="left">left</wa-option>
-    <wa-option value="left-start">left-start</wa-option>
-    <wa-option value="left-end">left-end</wa-option>
-  </wa-select>
+  <wa-divider></wa-divider>
+
+  <wa-combobox name="placement" label="Placement" placeholder="Select placement..."></wa-combobox>
 </div>
 
 <style>
@@ -223,17 +248,46 @@ Since placement is preferred when using `flip`, you can observe the popup's curr
     border-radius: var(--wa-border-radius-m);
   }
 
-  .popup-placement wa-select {
+  .popup-placement wa-combobox {
     max-width: 280px;
   }
 </style>
 
-<script>
+<script type="module">
+  await customElements.whenDefined('wa-combobox');
+  await customElements.whenDefined('wa-option');
+
   const container = document.querySelector('.popup-placement');
   const popup = container.querySelector('wa-popup');
-  const select = container.querySelector('wa-select');
+  const placement = container.querySelector('wa-combobox');
 
-  select.addEventListener('change', () => (popup.placement = select.value));
+  const placements = [
+    'top',
+    'top-start',
+    'top-end',
+    'bottom',
+    'bottom-start',
+    'bottom-end',
+    'right',
+    'right-start',
+    'right-end',
+    'left',
+    'left-start',
+    'left-end',
+  ];
+
+  placements.forEach(value => {
+    const option = document.createElement('wa-option');
+    option.value = value;
+    option.textContent = value;
+    placement.append(option);
+  });
+
+  await placement.updateComplete;
+
+  placement.value = 'top';
+
+  placement.addEventListener('change', () => (popup.placement = placement.value));
 </script>
 ```
 
@@ -247,6 +301,8 @@ Use the `distance` attribute to change the distance between the popup and its an
     <span slot="anchor"></span>
     <div class="box"></div>
   </wa-popup>
+
+  <wa-divider></wa-divider>
 
   <wa-slider min="-50" max="50" step="1" value="0" label="Distance"></wa-slider>
 </div>
@@ -292,6 +348,8 @@ The `skidding` attribute is similar to `distance`, but instead allows you to off
     <div class="box"></div>
   </wa-popup>
 
+  <wa-divider></wa-divider>
+
   <wa-slider min="-50" max="50" step="1" value="0" label="Skidding"></wa-slider>
 </div>
 
@@ -327,7 +385,7 @@ The `skidding` attribute is similar to `distance`, but instead allows you to off
 
 ### Arrows
 
-Add an arrow to your popup with the `arrow` attribute. It's usually a good idea to set a `distance` to make room for the arrow. To adjust the arrow's color and size, use the `--arrow-color` and `--arrow-size` custom properties, respectively. You can also target the `arrow` part to add additional styles such as shadows and borders.
+Add an arrow to your popup with the `arrow` attribute. It's usually a good idea to set a `distance` to make room for the arrow. To adjust the arrow's color and size, use the `--arrow-color` and `--arrow-size` custom properties, respectively. You can also target the `arrow` part to add additional styles such as shadows and borders to match styles applied to rest of the popup element.
 
 By default, the arrow will be aligned as close to the center of the _anchor_ as possible, considering available space and `arrow-padding`. You can use the `arrow-placement` attribute to force the arrow to align to the start, end, or center of the _popup_ instead.
 
@@ -338,32 +396,28 @@ By default, the arrow will be aligned as close to the center of the _anchor_ as 
     <div class="box"></div>
   </wa-popup>
 
-  <div class="popup-arrow-options">
-    <wa-select label="Placement" name="placement" value="top" class="popup-overview-select">
-      <wa-option value="top">top</wa-option>
-      <wa-option value="top-start">top-start</wa-option>
-      <wa-option value="top-end">top-end</wa-option>
-      <wa-option value="bottom">bottom</wa-option>
-      <wa-option value="bottom-start">bottom-start</wa-option>
-      <wa-option value="bottom-end">bottom-end</wa-option>
-      <wa-option value="right">right</wa-option>
-      <wa-option value="right-start">right-start</wa-option>
-      <wa-option value="right-end">right-end</wa-option>
-      <wa-option value="left">left</wa-option>
-      <wa-option value="left-start">left-start</wa-option>
-      <wa-option value="left-end">left-end</wa-option>
-    </wa-select>
+  <wa-divider></wa-divider>
 
-    <wa-select label="Arrow Placement" name="arrow-placement" value="anchor">
-      <wa-option value="anchor">anchor</wa-option>
-      <wa-option value="start">start</wa-option>
-      <wa-option value="end">end</wa-option>
-      <wa-option value="center">center</wa-option>
-    </wa-select>
-  </div>
+  <div class="wa-cluster">
+    <div class="popup-arrow-options">
+      <wa-combobox
+        label="Placement"
+        name="placement"
+        placeholder="Select placement..."
+        class="popup-overview-select"
+      ></wa-combobox>
 
-  <div class="popup-arrow-options">
-    <wa-switch name="arrow" checked>Arrow</wa-switch>
+      <wa-select label="Arrow Placement" name="arrow-placement" value="anchor">
+        <wa-option value="anchor">anchor</wa-option>
+        <wa-option value="start">start</wa-option>
+        <wa-option value="end">end</wa-option>
+        <wa-option value="center">center</wa-option>
+      </wa-select>
+    </div>
+
+    <div class="popup-arrow-options">
+      <wa-switch name="arrow" checked>Arrow</wa-switch>
+    </div>
   </div>
 
   <style>
@@ -393,6 +447,7 @@ By default, the arrow will be aligned as close to the center of the _anchor_ as 
       gap: 1rem;
     }
 
+    .popup-arrow-options wa-combobox,
     .popup-arrow-options wa-select {
       width: 160px;
     }
@@ -402,12 +457,41 @@ By default, the arrow will be aligned as close to the center of the _anchor_ as 
     }
   </style>
 
-  <script>
+  <script type="module">
+    await customElements.whenDefined('wa-combobox');
+    await customElements.whenDefined('wa-option');
+
     const container = document.querySelector('.popup-arrow');
     const popup = container.querySelector('wa-popup');
-    const placement = container.querySelector('[name="placement"]');
-    const arrowPlacement = container.querySelector('[name="arrow-placement"]');
+    const placement = container.querySelector('wa-combobox[name="placement"]');
+    const arrowPlacement = container.querySelector('wa-select[name="arrow-placement"]');
     const arrow = container.querySelector('[name="arrow"]');
+
+    const placements = [
+      'top',
+      'top-start',
+      'top-end',
+      'bottom',
+      'bottom-start',
+      'bottom-end',
+      'right',
+      'right-start',
+      'right-end',
+      'left',
+      'left-start',
+      'left-end',
+    ];
+
+    placements.forEach(value => {
+      const option = document.createElement('wa-option');
+      option.value = value;
+      option.textContent = value;
+      placement.append(option);
+    });
+
+    await placement.updateComplete;
+
+    placement.value = 'top';
 
     placement.addEventListener('change', () => (popup.placement = placement.value));
     arrowPlacement.addEventListener('change', () => (popup.arrowPlacement = arrowPlacement.value));
@@ -416,9 +500,113 @@ By default, the arrow will be aligned as close to the center of the _anchor_ as 
 </div>
 ```
 
+### Border
+
+Borders can also be added to the popup element by targeting the contents of the `wa-popup` element. This styling can also be extended to the arrow itself by targeting `.arrow` class in the popup.
+
+When adding borders to the popup element which has an arrow, make sure to set the `--popup-border-width` custom property to match the width of the border of the popup. Setting this will allow the arrow to overlap the border of the popup so that they visually appear connected.
+
+```html {.example}
+<div class="popup-border">
+  <wa-popup placement="top" arrow arrow-placement="anchor" distance="8" active>
+    <span slot="anchor"></span>
+    <div class="box"></div>
+  </wa-popup>
+
+  <wa-divider></wa-divider>
+
+  <div class="popup-border-options">
+    <wa-combobox
+      label="Placement"
+      name="placement"
+      placeholder="Select placement..."
+      class="popup-overview-select"
+    ></wa-combobox>
+  </div>
+
+  <style>
+    .popup-border span[slot='anchor'] {
+      display: inline-block;
+      width: 150px;
+      height: 150px;
+      border: dashed 2px var(--wa-color-neutral-fill-loud);
+      margin: 50px;
+    }
+
+    .popup-border .box {
+      width: 100px;
+      height: 50px;
+      background: var(--wa-color-brand-on-loud);
+      border-radius: var(--wa-border-radius-m);
+      border: var(--wa-panel-border-width) solid var(--wa-color-brand-border-loud);
+      border-style: var(--wa-panel-border-style);
+      box-shadow: var(--wa-shadow-l);
+    }
+
+    .popup-border wa-popup {
+      --arrow-color: var(--wa-color-brand-on-loud);
+      --popup-border-width: var(--wa-panel-border-width);
+
+      /* Inset box-shadow, not a border: Safari seams a clip-path edge that runs along a border. */
+      &::part(arrow) {
+        box-shadow: inset calc(-1 * var(--wa-panel-border-width)) calc(-1 * var(--wa-panel-border-width)) 0 0
+          var(--wa-color-brand-border-loud);
+      }
+    }
+
+    .popup-border-options {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 1rem;
+    }
+
+    .popup-border-options wa-combobox {
+      width: 160px;
+    }
+  </style>
+
+  <script type="module">
+    await customElements.whenDefined('wa-combobox');
+
+    const container = document.querySelector('.popup-border');
+    const popup = container.querySelector('wa-popup');
+    const placement = container.querySelector('wa-combobox[name="placement"]');
+
+    const placements = [
+      'top',
+      'top-start',
+      'top-end',
+      'bottom',
+      'bottom-start',
+      'bottom-end',
+      'right',
+      'right-start',
+      'right-end',
+      'left',
+      'left-start',
+      'left-end',
+    ];
+
+    placements.forEach(value => {
+      const option = document.createElement('wa-option');
+      option.value = value;
+      option.textContent = value;
+      placement.append(option);
+    });
+
+    await placement.updateComplete;
+
+    placement.value = 'top';
+
+    placement.addEventListener('change', () => (popup.placement = placement.value));
+  </script>
+</div>
+```
+
 {# TODO: this example totally destroys browsers. Needs investigation.
 
-### Syncing with the Anchor's Dimensions
+### Sync
 
 Use the `sync` attribute to make the popup the same width or height as the anchor element. This is useful for controls that need the popup to stay the same width or height as the trigger.
 
@@ -469,6 +657,7 @@ Use the `sync` attribute to make the popup the same width or height as the ancho
   sync.addEventListener('change', () => (popup.sync = sync.value));
 </script>
 ```
+
 #}
 
 ### Flip
@@ -490,7 +679,8 @@ Scroll the container to see how the popup flips to prevent clipping.
     </wa-popup>
   </div>
 
-  <br />
+  <wa-divider></wa-divider>
+
   <wa-switch checked>Flip</wa-switch>
 </div>
 
@@ -598,6 +788,8 @@ Toggle the switch to see the difference.
     </wa-popup>
   </div>
 
+  <wa-divider></wa-divider>
+
   <wa-switch checked>Shift</wa-switch>
 </div>
 
@@ -633,7 +825,7 @@ Toggle the switch to see the difference.
 </script>
 ```
 
-### Auto-size
+### Auto-Size
 
 Use the `auto-size` attribute to tell the popup to resize when necessary to prevent it from overflowing.
 Possible values are `horizontal`, `vertical`, and `both`. You can use `autoSizeBoundary` and `auto-size-padding` to customize the behavior of this option. Auto-size works well with `flip`, but if you're using `auto-size-padding` make sure `flip-padding` is the same value.
@@ -654,7 +846,8 @@ Scroll the container to see the popup resize as its available space changes.
     </wa-popup>
   </div>
 
-  <br />
+  <wa-divider></wa-divider>
+
   <wa-switch checked>Auto-size</wa-switch>
 </div>
 
@@ -708,10 +901,14 @@ When a gap exists between the anchor and the popup element, this option will add
     <span slot="anchor"></span>
     <div class="box"></div>
   </wa-popup>
-  <br />
-  <wa-switch checked>Hover Bridge</wa-switch><br />
-  <wa-slider min="0" max="50" step="1" value="10" label="Distance"></wa-slider>
-  <wa-slider min="-50" max="50" step="1" value="0" label="Skidding"></wa-slider>
+
+  <wa-divider></wa-divider>
+
+  <div class="wa-cluster">
+    <wa-switch checked>Hover Bridge</wa-switch>
+    <wa-slider min="0" max="50" step="1" value="10" label="Distance"></wa-slider>
+    <wa-slider min="-50" max="50" step="1" value="0" label="Skidding"></wa-slider>
+  </div>
 </div>
 <style>
   .popup-hover-bridge span[slot='anchor'] {
@@ -735,7 +932,7 @@ When a gap exists between the anchor and the popup element, this option will add
   }
 
   .popup-hover-bridge wa-popup::part(hover-bridge) {
-    background: tomato;
+    background: var(--wa-color-warning-fill-loud);
     opacity: 0.5;
   }
 </style>
@@ -771,6 +968,8 @@ This example anchors a popup to the mouse cursor using a virtual element. As suc
   <wa-popup placement="right-start">
     <div class="circle"></div>
   </wa-popup>
+
+  <wa-divider></wa-divider>
 
   <wa-switch>Highlight mouse cursor</wa-switch>
 </div>

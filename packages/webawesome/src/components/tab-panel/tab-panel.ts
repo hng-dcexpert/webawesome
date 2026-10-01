@@ -8,14 +8,14 @@ import styles from './tab-panel.styles.js';
 let id = 0;
 
 /**
- * @summary Tab panels are used inside [tab groups](/docs/components/tab-group) to display tabbed content.
+ * @summary Tab panels hold the content shown for a single tab inside a tab group.
  * @documentation https://webawesome.com/docs/components/tab-panel
  * @status stable
  * @since 2.0
  *
  * @slot - The tab panel's content.
  *
- * @csspart base - The component's base wrapper.
+ * @csspart base - Deprecated. Style the host element instead.
  *
  * @cssproperty --padding - The tab panel's padding.
  */
@@ -32,10 +32,11 @@ export default class WaTabPanel extends WebAwesomeElement {
   /** When true, the tab panel will be shown. */
   @property({ type: Boolean, reflect: true }) active = false;
 
+  @property({ reflect: true }) role = 'tabpanel';
+
   connectedCallback() {
     super.connectedCallback();
-    this.id = this.id.length > 0 ? this.id : this.componentId;
-    this.setAttribute('role', 'tabpanel');
+    this.id = (this.id || '').length > 0 ? this.id : this.componentId;
   }
 
   @watch('active')
