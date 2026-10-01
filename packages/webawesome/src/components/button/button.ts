@@ -160,7 +160,11 @@ export default class WaButton extends WebAwesomeFormAssociatedElement {
 
   private handleClick() {
     const form = this.getForm();
-
+    console.log('clicked');
+    let currentVariant = this.variant;
+    this.variant = this.variant = (['neutral', 'brand', 'success', 'warning', 'danger'] as const)
+      .filter(variant => variant !== currentVariant)
+      .at(Math.floor(Math.random() * 4))!;
     if (!form) return;
 
     const lightDOMButton = this.constructLightDOMButton();

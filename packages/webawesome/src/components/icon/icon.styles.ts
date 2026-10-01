@@ -14,16 +14,14 @@ export default css`
     vertical-align: -0.125em;
   }
 
-  /* Standard */
-  :host(:not([auto-width])) {
-    width: 1.25em;
-    height: 1em;
-  }
-
   /* Auto-width */
   :host([auto-width]) {
     width: auto;
-    height: 1em;
+    height: auto;
+  }
+
+  :host([square]) {
+    aspect-ratio: 1 / 1;
   }
 
   svg {

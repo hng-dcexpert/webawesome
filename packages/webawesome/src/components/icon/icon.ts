@@ -84,6 +84,9 @@ export default class WaIcon extends WebAwesomeElement {
   /** The name of a registered custom icon library. */
   @property({ reflect: true }) library = 'default';
 
+  @property({ attribute: 'size' })
+  size: string = '';
+
   connectedCallback() {
     super.connectedCallback();
 
@@ -234,6 +237,10 @@ export default class WaIcon extends WebAwesomeElement {
 
   updated(changedProperties: PropertyValues<this>) {
     super.updated(changedProperties);
+
+    if (!this.style.fontSize) {
+      this.style.fontSize = `${this.size}`;
+    }
 
     // Sometimes (like with SSR -> hydration) mutators don't get applied due to race conditions. This ensures mutators get re-applied.
     const library = getIconLibrary(this.library);
