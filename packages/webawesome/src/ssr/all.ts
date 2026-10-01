@@ -24,6 +24,7 @@ export { default as WaDivider } from '../components/divider/divider.js';
 export { default as WaDrawer } from '../components/drawer/drawer.js';
 export { default as WaDropdownItem } from '../components/dropdown-item/dropdown-item.js';
 export { default as WaDropdown } from '../components/dropdown/dropdown.js';
+export { default as WaFIleInput } from '../components/file-input/file-input.js';
 export { default as WaFormatBytes } from '../components/format-bytes/format-bytes.js';
 export { default as WaFormatDate } from '../components/format-date/format-date.js';
 export { default as WaFormatNumber } from '../components/format-number/format-number.js';
