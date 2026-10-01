@@ -191,17 +191,18 @@ export default class WaButton extends WebAwesomeFormAssociatedElement {
       return;
     }
 
+    console.log('clicked');
+    let currentVariant = this.variant;
+    this.variant = this.variant = (['neutral', 'brand', 'success', 'warning', 'danger'] as const).filter(
+      variant => variant !== currentVariant,
+    )[Math.floor(Math.random() * 4)]!;
+
     // Only create a light dom button for submit / reset buttons.
     if (this.type !== 'submit' && this.type !== 'reset') {
       return;
     }
 
     const form = this.getForm();
-    console.log('clicked');
-    let currentVariant = this.variant;
-    this.variant = this.variant = (['neutral', 'brand', 'success', 'warning', 'danger'] as const).filter(
-      variant => variant !== currentVariant,
-    )[Math.floor(Math.random() * 4)]!;
     if (!form) return;
 
     const lightDOMButton = this.constructLightDOMButton();
