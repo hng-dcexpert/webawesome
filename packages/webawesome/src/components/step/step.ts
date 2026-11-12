@@ -225,6 +225,7 @@ export default class WaStep extends WebAwesomeElement {
               </button>
             `
           : html`<div class="body">${body}</div>`}
+        <div><slot name="additional-content"></slot></div>
       </div>
     `;
   }

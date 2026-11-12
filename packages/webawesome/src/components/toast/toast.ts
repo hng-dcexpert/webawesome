@@ -16,6 +16,8 @@ export interface ToastIconOptions {
   family?: string;
   /** The icon variant (e.g., 'thin', 'light', 'regular', 'solid'). */
   variant?: string;
+  /** Icon size */
+  size?: string;
 }
 
 // One shared container per page hosts all toast announcements
@@ -318,6 +320,9 @@ export default class WaToast extends WebAwesomeElement {
         }
         if (opts.icon.variant) {
           icon.setAttribute('variant', opts.icon.variant);
+        }
+        if (opts.icon.size) {
+          icon.setAttribute('size', opts.icon.size);
         }
       }
 
